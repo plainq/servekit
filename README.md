@@ -1,6 +1,6 @@
 # The `servkit` helps to build APIs.
 
-Is a set of well-tested (or not well 🤭) reusable components to speedup dat-to-day development of HTTP and gRPC APIs.
+Is a set of well-tested (or not well 🤭) reusable components to speedup day-to-day development of HTTP and gRPC APIs.
 
 ## On the shoulders of giants
 
