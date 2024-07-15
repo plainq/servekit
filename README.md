@@ -2,6 +2,10 @@
 
 Is a set of well-tested (or not well 🤭) reusable components to speedup day-to-day development of HTTP and gRPC APIs.
 
+## Docs
+
+The code should be very straightforward to read, but you always can check the [go docs](https://pkg.go.dev/github.com/plainq/servekit). 
+
 ## On the shoulders of giants
 
 - [github.com/VictoriaMetrics/metric](https://github.com/VictoriaMetrics/metrics)

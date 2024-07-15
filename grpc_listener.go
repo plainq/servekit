@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net"
 
-	"github.com/heartwilltell/hc"
 	"github.com/plainq/servekit/midkit"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -47,7 +46,6 @@ type GRPCEndpointRegistrator interface {
 
 // ListenerGRPC represents a struct that encapsulates a gRPC server listener.
 type ListenerGRPC struct {
-	health   hc.HealthChecker
 	logger   *slog.Logger
 	listener net.Listener
 	server   *grpc.Server

@@ -198,6 +198,11 @@ func HTML(w http.ResponseWriter, r *http.Request, v []byte, options ...Option) {
 	}
 }
 
+// TemplateHTML generates an HTML template response for the given name and data.
+// It sets the Content-Type header to "text/html; charset=utf-8" and writes the
+// response with the specified status code. If the template execution fails, an
+// error will be logged and a 500 Internal Server Error response will be sent.
+// Additional options can be passed to modify the response using the Option functions.
 func TemplateHTML(w http.ResponseWriter, r *http.Request, name string, v any, options ...Option) {
 	o := Options(w, options...)
 
@@ -270,12 +275,16 @@ func Options(w http.ResponseWriter, options ...Option) *ResponseOptions {
 	return &r
 }
 
+// Option represents a function type that modifies ResponseOptions for an HTTP response.
 type Option func(o *ResponseOptions)
 
+// WithStatus sets the given status code as the statusCode field of the ResponseOptions parameter.
 func WithStatus(status int) Option {
 	return func(o *ResponseOptions) { o.statusCode = status }
 }
 
+// WithHeader is an Option function that adds the given key-value pair to the headers of the ResponseOptions.
+// The headers are used to modify the headers of an HTTP response.
 func WithHeader(key, value string) Option {
 	return func(o *ResponseOptions) { o.headers.Add(key, value) }
 }
@@ -298,6 +307,6 @@ func zero[T any]() T {
 
 type noopTemplater struct{}
 
-func (t *noopTemplater) Template(_ context.Context, _ string) (*template.Template, error) {
+func (*noopTemplater) Template(_ context.Context, _ string) (*template.Template, error) {
 	return nil, fmt.Errorf("templater has not been initialized")
 }

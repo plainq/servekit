@@ -6,9 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"servekit/errkit"
-
 	"github.com/getsentry/sentry-go"
+	"github.com/plainq/servekit/errkit"
 )
 
 var (
@@ -95,4 +94,4 @@ func Close() error {
 
 type reporter struct{}
 
-func (r reporter) Report(err error) { _ = sentry.CaptureMessage(err.Error()) }
+func (reporter) Report(err error) { _ = sentry.CaptureMessage(err.Error()) }

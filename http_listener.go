@@ -226,7 +226,7 @@ func NewListenerHTTP(addr string, options ...OptionHTTP[httpConfig]) (*ListenerH
 
 	l := ListenerHTTP{
 		router: router,
-		server: &http.Server{
+		server: &http.Server{ //nolint: gosec // OK here. Timeouts will be set later.
 			Addr:    addr,
 			Handler: router,
 		},
@@ -275,7 +275,7 @@ func (l *ListenerHTTP) Serve(ctx context.Context) error {
 
 	g, serveCtx := errgroup.WithContext(ctx)
 
-	// handle shutdown signal in the background
+	// Handle shutdown signal in the background.
 	g.Go(func() error { return l.handleShutdown(serveCtx) })
 
 	g.Go(func() error {
@@ -449,11 +449,17 @@ func applyOptionsHTTP(options ...OptionHTTP[httpConfig]) httpConfig {
 }
 
 func (l *ListenerHTTP) configureTLS(cfg httpConfig) error {
-	if cfg.cert != "" && cfg.key != "" {
-		l.enableTLS = true
-		l.cert = cfg.cert
-		l.key = cfg.key
+	if cfg.cert == "" {
+		return ErrCertPathRequired
 	}
+
+	if cfg.key == "" {
+		return ErrPrivateKeyPathRequired
+	}
+
+	l.enableTLS = true
+	l.cert = cfg.cert
+	l.key = cfg.key
 
 	return nil
 }

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	"github.com/plainq/servekit/tern"
@@ -62,11 +62,11 @@ type ExponentialBackoff struct {
 
 // NewExponentialBackoff returns a pointer to a new instance of
 // ExponentialBackoff struct, which implements Backoff interface.
-func NewExponentialBackoff(f uint, min, max, jitter time.Duration) *ExponentialBackoff {
+func NewExponentialBackoff(f uint, minv, maxv, jitter time.Duration) *ExponentialBackoff {
 	backoff := ExponentialBackoff{
 		exponentialFactor:  float64(f),
-		minBackoffInterval: float64(min / time.Millisecond),
-		maxBackoffInterval: float64(max / time.Millisecond),
+		minBackoffInterval: float64(minv / time.Millisecond),
+		maxBackoffInterval: float64(maxv / time.Millisecond),
 		maxJitterInterval:  float64(jitter / time.Millisecond),
 	}
 
@@ -84,7 +84,7 @@ func (b *ExponentialBackoff) Next(retry uint) time.Duration {
 
 	mult := math.Pow(b.exponentialFactor, float64(retry))
 	backoff := math.Min(b.minBackoffInterval*mult, b.maxBackoffInterval)
-	jitter := float64(rand.Int63n(int64(b.maxJitterInterval)))
+	jitter := float64(rand.Int64N(int64(b.maxJitterInterval)))
 
 	return time.Duration(backoff+jitter) * time.Millisecond
 }
@@ -98,10 +98,10 @@ type ConstantBackoff struct {
 
 // NewConstantBackoff returns a pointer to a new instance of
 // ConstantBackoff struct, which implements Backoff interface.
-func NewConstantBackoff(min, max, jitter time.Duration) *ConstantBackoff {
+func NewConstantBackoff(minv, maxv, jitter time.Duration) *ConstantBackoff {
 	backoff := ConstantBackoff{
-		minBackoffInterval: float64(min / time.Millisecond),
-		maxBackoffInterval: float64(max / time.Millisecond),
+		minBackoffInterval: float64(minv / time.Millisecond),
+		maxBackoffInterval: float64(maxv / time.Millisecond),
 		maxJitterInterval:  float64(jitter / time.Millisecond),
 	}
 
@@ -113,7 +113,7 @@ func (b *ConstantBackoff) Next(retry uint) time.Duration {
 		return 0 * time.Millisecond
 	}
 
-	jitter := float64(rand.Int63n(int64(b.maxJitterInterval)))
+	jitter := float64(rand.Int64N(int64(b.maxJitterInterval)))
 	backoff := math.Min(b.minBackoffInterval, b.maxBackoffInterval)
 
 	return time.Duration(backoff+jitter) * time.Millisecond
@@ -128,10 +128,10 @@ type LinearBackoff struct {
 
 // NewLinearBackoff returns a pointer to a new instance of
 // ConstantBackoff struct, which implements Backoff interface.
-func NewLinearBackoff(min, max, jitter time.Duration) *LinearBackoff {
+func NewLinearBackoff(minv, maxv, jitter time.Duration) *LinearBackoff {
 	backoff := LinearBackoff{
-		minBackoffInterval: float64(min / time.Millisecond),
-		maxBackoffInterval: float64(max / time.Millisecond),
+		minBackoffInterval: float64(minv / time.Millisecond),
+		maxBackoffInterval: float64(maxv / time.Millisecond),
 		maxJitterInterval:  float64(jitter / time.Millisecond),
 	}
 
@@ -143,7 +143,7 @@ func (b *LinearBackoff) Next(retry uint) time.Duration {
 		return 0 * time.Millisecond
 	}
 
-	jitter := float64(rand.Int63n(int64(b.maxJitterInterval)))
+	jitter := float64(rand.Int64N(int64(b.maxJitterInterval)))
 	backoff := math.Min(b.minBackoffInterval*float64(retry), b.maxBackoffInterval)
 
 	return time.Duration(backoff+jitter) * time.Millisecond
