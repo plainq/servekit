@@ -49,8 +49,6 @@ type Options struct {
 }
 
 // Option represents a function that modifies the configuration options for the logging library.
-// The function takes a pointer to the Options struct and updates its fields accordingly.
-// Example usage: WithWriter(w io.Writer) Option { return func(o *Options) { o.writer = w } }
 type Option func(*Options)
 
 // WithWriter changes the writer for each leveled loggers of StdLog to the given on.

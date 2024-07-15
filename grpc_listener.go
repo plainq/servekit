@@ -40,6 +40,12 @@ func WithStreamInterceptors(interceptors ...midkit.StreamInterceptor) OptionGRPC
 	}
 }
 
+// GRPCEndpointRegistrator abstracts a mechanics of registering
+// the gRPC service in the gRPC server.
+type GRPCEndpointRegistrator interface {
+	Mount(server *grpc.Server)
+}
+
 // ListenerGRPC represents a struct that encapsulates a gRPC server listener.
 type ListenerGRPC struct {
 	health   hc.HealthChecker
@@ -73,23 +79,11 @@ func NewListenerGRPC(addr string, options ...OptionGRPC[grpcConfig]) (*ListenerG
 	return &l, nil
 }
 
-// grpcConfig represents a struct that holds the configuration options for a gRPC server.
-type grpcConfig struct {
-	unaryInterceptors  []midkit.UnaryInterceptor
-	streamInterceptors []midkit.StreamInterceptor
-}
-
-func applyOptionsGRPC(options ...OptionGRPC[grpcConfig]) grpcConfig {
-	cfg := grpcConfig{
-		unaryInterceptors:  make([]midkit.UnaryInterceptor, 0),
-		streamInterceptors: make([]midkit.StreamInterceptor, 0),
+// Mount the given handlers to the listener gRPC server.
+func (l *ListenerGRPC) Mount(handlers ...GRPCEndpointRegistrator) {
+	for _, h := range handlers {
+		h.Mount(l.server)
 	}
-
-	for _, option := range options {
-		option(&cfg)
-	}
-
-	return cfg
 }
 
 func (l *ListenerGRPC) Serve(ctx context.Context) error {
@@ -163,4 +157,23 @@ func (l *ListenerGRPC) handleShutdown(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func applyOptionsGRPC(options ...OptionGRPC[grpcConfig]) grpcConfig {
+	cfg := grpcConfig{
+		unaryInterceptors:  make([]midkit.UnaryInterceptor, 0),
+		streamInterceptors: make([]midkit.StreamInterceptor, 0),
+	}
+
+	for _, option := range options {
+		option(&cfg)
+	}
+
+	return cfg
+}
+
+// grpcConfig represents a struct that holds the configuration options for a gRPC server.
+type grpcConfig struct {
+	unaryInterceptors  []midkit.UnaryInterceptor
+	streamInterceptors []midkit.StreamInterceptor
 }
