@@ -279,8 +279,8 @@ func Options(w http.ResponseWriter, options ...Option) *ResponseOptions {
 type Option func(o *ResponseOptions)
 
 // WithStatus sets the given status code as the statusCode field of the ResponseOptions parameter.
-func WithStatus(status int) Option {
-	return func(o *ResponseOptions) { o.statusCode = status }
+func WithStatus(code int) Option {
+	return func(o *ResponseOptions) { o.statusCode = code }
 }
 
 // WithHeader is an Option function that adds the given key-value pair to the headers of the ResponseOptions.

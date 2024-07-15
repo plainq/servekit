@@ -1,7 +1,7 @@
 package errkit
 
 // This is compiling time check for interface implementation.
-var _ error = (Error)("") //nolint: errcheck // OK here.
+var _ error = Error("") //nolint: errcheck // OK here.
 
 const (
 	// ErrNotFound indicates that requested entity can not be found.

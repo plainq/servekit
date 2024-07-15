@@ -15,7 +15,7 @@ import (
 	"github.com/valyala/fastrand"
 )
 
-var _ error = (Error)("")
+var _ error = Error("") //nolint: errcheck // OK here.
 
 const (
 	// ErrInvalidID represents an error which indicates that given TID is invalid.
