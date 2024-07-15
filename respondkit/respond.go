@@ -9,9 +9,8 @@ import (
 	"net/http"
 	"sync"
 
-	"servekit/ctxkit"
-	"servekit/errkit"
-
+	"github.com/plainq/servekit/ctxkit"
+	"github.com/plainq/servekit/errkit"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

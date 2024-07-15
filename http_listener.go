@@ -9,14 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"servekit/midkit"
-	"servekit/ternkit"
-
 	"github.com/VictoriaMetrics/metrics"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/heartwilltell/hc"
+	"github.com/plainq/servekit/midkit"
+	"github.com/plainq/servekit/ternkit"
 	"golang.org/x/sync/errgroup"
 )
 

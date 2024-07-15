@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"time"
 
-	"servekit/ternkit"
+	"github.com/plainq/servekit/ternkit"
 )
 
 const (

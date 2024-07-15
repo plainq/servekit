@@ -6,9 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"servekit/ctxkit"
-
 	"github.com/VictoriaMetrics/metrics"
+	"github.com/plainq/servekit/ctxkit"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 )

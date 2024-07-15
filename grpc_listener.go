@@ -7,9 +7,8 @@ import (
 	"log/slog"
 	"net"
 
-	"servekit/midkit"
-
 	"github.com/heartwilltell/hc"
+	"github.com/plainq/servekit/midkit"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
