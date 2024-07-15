@@ -15,7 +15,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/heartwilltell/hc"
 	"github.com/plainq/servekit/midkit"
-	"github.com/plainq/servekit/ternkit"
+	"github.com/plainq/servekit/tern"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -279,7 +279,7 @@ func (l *ListenerHTTP) Serve(ctx context.Context) error {
 	g.Go(func() error { return l.handleShutdown(serveCtx) })
 
 	g.Go(func() error {
-		protocol := ternkit.OP[string](l.enableTLS, "HTTPS", "HTTP")
+		protocol := tern.OP[string](l.enableTLS, "HTTPS", "HTTP")
 
 		l.logger.Info(protocol+" listener started to listen",
 			slog.String("address", l.server.Addr),

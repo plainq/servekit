@@ -1,4 +1,4 @@
-package ternkit
+package tern
 
 import (
 	"testing"

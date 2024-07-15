@@ -1,4 +1,4 @@
-package respondkit
+package respond
 
 import (
 	"context"

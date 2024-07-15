@@ -1,4 +1,4 @@
-package retrykit
+package retry
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/plainq/servekit/ternkit"
+	"github.com/plainq/servekit/tern"
 )
 
 const (
@@ -37,7 +37,7 @@ func (e RetryableError) Error() string {
 
 // MarkRetryable marks error as retryable by wrapping it in RetryableError.
 func MarkRetryable(err error) error {
-	return ternkit.OP[error](err == nil, nil, &RetryableError{err: err})
+	return tern.OP[error](err == nil, nil, &RetryableError{err: err})
 }
 
 // Backoff represents backoff logic.

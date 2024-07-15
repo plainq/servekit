@@ -1,4 +1,4 @@
-package ternkit
+package tern
 
 // OP represents generic ternary operator.
 //
