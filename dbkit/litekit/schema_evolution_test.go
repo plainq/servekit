@@ -1,1 +1,1 @@
-package pqlite
+package litekit
