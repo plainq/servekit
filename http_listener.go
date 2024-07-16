@@ -238,8 +238,10 @@ func NewListenerHTTP(addr string, options ...OptionHTTP[httpConfig]) (*ListenerH
 	// Use global middlewares.
 	l.router.Use(cfg.globalMiddlewares...)
 
-	if err := l.configureTLS(cfg); err != nil {
-		return nil, fmt.Errorf("configure TLS: %w", err)
+	if l.enableTLS {
+		if err := l.configureTLS(cfg); err != nil {
+			return nil, fmt.Errorf("configure TLS: %w", err)
+		}
 	}
 
 	if err := l.configureHealth(cfg); err != nil {
