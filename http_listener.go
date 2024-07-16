@@ -235,9 +235,6 @@ func NewListenerHTTP(addr string, options ...OptionHTTP[httpConfig]) (*ListenerH
 	// Apply all option to the default applyOptionsHTTP.
 	cfg := applyOptionsHTTP(options...)
 
-	// Use global middlewares.
-	l.router.Use(cfg.globalMiddlewares...)
-
 	if l.enableTLS {
 		if err := l.configureTLS(cfg); err != nil {
 			return nil, fmt.Errorf("configure TLS: %w", err)
@@ -259,6 +256,9 @@ func NewListenerHTTP(addr string, options ...OptionHTTP[httpConfig]) (*ListenerH
 	if err := l.configureCORS(cfg); err != nil {
 		return nil, fmt.Errorf("configure cors: %w", err)
 	}
+
+	// Use global middlewares.
+	l.router.Use(cfg.globalMiddlewares...)
 
 	return &l, nil
 }
@@ -550,12 +550,12 @@ func (l *ListenerHTTP) configureProfiler(cfg httpConfig) error {
 }
 
 func (l *ListenerHTTP) configureCORS(cfg httpConfig) error {
-	if len(cfg.cors.allowedOrigins) == 0 {
-		return errors.New("cors misconfiguration: at least one origin should be specified")
-	}
-
 	if cfg.cors.enable {
-		l.router.Use(cors.Handler(cors.Options{
+		if len(cfg.cors.allowedOrigins) == 0 {
+			return errors.New("cors misconfiguration: at least one origin should be specified")
+		}
+
+		cfg.globalMiddlewares = append(cfg.globalMiddlewares, cors.Handler(cors.Options{
 			AllowedOrigins:   cfg.cors.allowedOrigins,
 			AllowedMethods:   cfg.cors.allowedMethods,
 			AllowedHeaders:   cfg.cors.allowedHeaders,
