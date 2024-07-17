@@ -1,4 +1,4 @@
-package servekit
+package httpkit
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/heartwilltell/hc"
+	"github.com/plainq/servekit"
 	"github.com/plainq/servekit/midkit"
 	"github.com/plainq/servekit/tern"
 	"golang.org/x/sync/errgroup"
@@ -39,19 +40,19 @@ const (
 	corsMaxAge = 300
 )
 
-// OptionHTTP implements functional options pattern for the ListenerHTTP type.
+// Option implements functional options pattern for the ListenerHTTP type.
 // Represents a function which receive a pointer to the generic struct that represents
 // a part of ListenerHTTP configuration and changes it default values to the given ones.
 //
 // See the applyOptionsHTTP function to understand the configuration behaviour.
-// OptionHTTP functions should only be passed to ListenerHTTP constructor function NewListenerHTTP.
-type OptionHTTP[T httpConfig | httpTimeoutsConfig | healthConfig | metricsConfig | corsConfig | pprofConfig] func(o *T)
+// Option functions should only be passed to ListenerHTTP constructor function NewListenerHTTP.
+type Option[T config | timeoutsConfig | healthConfig | metricsConfig | corsConfig | pprofConfig] func(o *T)
 
 // WithTLS sets the TLS certificate and key to be used by the HTTP server.
 // The certificate and key must be provided as strings containing the file paths.
-// Note that this function is an OptionHTTP for httpConfig and should be passed to the NewServer constructor.
-func WithTLS(cert, key string) OptionHTTP[httpConfig] {
-	return func(c *httpConfig) {
+// Note that this function is an Option for config and should be passed to the NewServer constructor.
+func WithTLS(cert, key string) Option[config] {
+	return func(c *config) {
 		c.cert = cert
 		c.key = key
 	}
@@ -59,29 +60,29 @@ func WithTLS(cert, key string) OptionHTTP[httpConfig] {
 
 // WithGlobalMiddlewares sets given middlewares as router-wide middlewares.
 // Means that they will be applied to each server endpoint.
-func WithGlobalMiddlewares(middlewares ...midkit.Middleware) OptionHTTP[httpConfig] {
-	return func(s *httpConfig) {
+func WithGlobalMiddlewares(middlewares ...midkit.Middleware) Option[config] {
+	return func(s *config) {
 		s.globalMiddlewares = append(s.globalMiddlewares, middlewares...)
 	}
 }
 
-// WithCORS configures the CORS httpConfig for Houston API routes.
-func WithCORS(options ...OptionHTTP[corsConfig]) OptionHTTP[httpConfig] {
-	return func(s *httpConfig) {
+// WithCORS configures the CORS config for Houston API routes.
+func WithCORS(options ...Option[corsConfig]) Option[config] {
+	return func(s *config) {
 		for _, option := range options {
 			option(&s.cors)
 		}
 	}
 }
 
-// WithHTTPServerTimeouts configures the HTTP listener httpTimeoutsConfig.
+// WithHTTPServerTimeouts configures the HTTP listener timeoutsConfig.
 // Receives the following option to configure the endpoint:
 // - HTTPServerReadHeaderTimeout - sets the http.Server ReadHeaderTimeout.
 // - HTTPServerReadTimeout - sets the http.Server ReadTimeout.
 // - HTTPServerWriteTimeout - sets the http.Server WriteTimeout.
 // - HTTPServerIdleTimeout - sets the http.Server IdleTimeout.
-func WithHTTPServerTimeouts(options ...OptionHTTP[httpTimeoutsConfig]) OptionHTTP[httpConfig] {
-	return func(s *httpConfig) {
+func WithHTTPServerTimeouts(options ...Option[timeoutsConfig]) Option[config] {
+	return func(s *config) {
 		for _, opt := range options {
 			opt(&s.timeouts)
 		}
@@ -89,28 +90,28 @@ func WithHTTPServerTimeouts(options ...OptionHTTP[httpTimeoutsConfig]) OptionHTT
 }
 
 // HTTPServerReadHeaderTimeout sets the http.Server ReadHeaderTimeout.
-func HTTPServerReadHeaderTimeout(t time.Duration) OptionHTTP[httpTimeoutsConfig] {
-	return func(c *httpTimeoutsConfig) { c.readHeaderTimeout = t }
+func HTTPServerReadHeaderTimeout(t time.Duration) Option[timeoutsConfig] {
+	return func(c *timeoutsConfig) { c.readHeaderTimeout = t }
 }
 
 // HTTPServerReadTimeout sets the http.Server ReadTimeout.
-func HTTPServerReadTimeout(t time.Duration) OptionHTTP[httpTimeoutsConfig] {
-	return func(c *httpTimeoutsConfig) { c.readTimeout = t }
+func HTTPServerReadTimeout(t time.Duration) Option[timeoutsConfig] {
+	return func(c *timeoutsConfig) { c.readTimeout = t }
 }
 
 // HTTPServerWriteTimeout sets the http.Server WriteTimeout.
-func HTTPServerWriteTimeout(t time.Duration) OptionHTTP[httpTimeoutsConfig] {
-	return func(c *httpTimeoutsConfig) { c.writeTimeout = t }
+func HTTPServerWriteTimeout(t time.Duration) Option[timeoutsConfig] {
+	return func(c *timeoutsConfig) { c.writeTimeout = t }
 }
 
 // HTTPServerIdleTimeout sets the http.Server IdleTimeout.
-func HTTPServerIdleTimeout(t time.Duration) OptionHTTP[httpTimeoutsConfig] {
-	return func(c *httpTimeoutsConfig) { c.idleTimeout = t }
+func HTTPServerIdleTimeout(t time.Duration) Option[timeoutsConfig] {
+	return func(c *timeoutsConfig) { c.idleTimeout = t }
 }
 
 // WithLogger sets the server logger.
-func WithLogger(logger *slog.Logger) OptionHTTP[httpConfig] {
-	return func(s *httpConfig) {
+func WithLogger(logger *slog.Logger) Option[config] {
+	return func(s *config) {
 		if logger != nil {
 			s.logger = logger
 		}
@@ -123,8 +124,8 @@ func WithLogger(logger *slog.Logger) OptionHTTP[httpConfig] {
 // - HealthCheckRoute - to set the endpoint route.
 // - HealthCheckAccessLog - to enable access log for endpoint.
 // - HealthCheckMetricsForEndpoint - to enable metrics collection for endpoint.
-func WithHealthCheck(options ...OptionHTTP[healthConfig]) OptionHTTP[httpConfig] {
-	return func(s *httpConfig) {
+func WithHealthCheck(options ...Option[healthConfig]) Option[config] {
+	return func(s *config) {
 		s.health.enable = true
 
 		for _, opt := range options {
@@ -135,7 +136,7 @@ func WithHealthCheck(options ...OptionHTTP[healthConfig]) OptionHTTP[httpConfig]
 
 // HealthChecker represents an optional function for WithHealthCheck function.
 // If passed to the WithHealthCheck, will set the ServerSettings.health.healthChecker.
-func HealthChecker(checker hc.HealthChecker) OptionHTTP[healthConfig] {
+func HealthChecker(checker hc.HealthChecker) Option[healthConfig] {
 	return func(c *healthConfig) {
 		// To not shoot in the leg. There are already a nop checker.
 		if checker != nil {
@@ -146,19 +147,19 @@ func HealthChecker(checker hc.HealthChecker) OptionHTTP[healthConfig] {
 
 // HealthCheckRoute represents an optional function for WithHealthCheck function.
 // If passed to the WithHealthCheck, will set the ServerSettings.health.route.
-func HealthCheckRoute(route string) OptionHTTP[healthConfig] {
+func HealthCheckRoute(route string) Option[healthConfig] {
 	return func(c *healthConfig) { c.route = route }
 }
 
 // HealthCheckAccessLog represents an optional function for WithHealthCheck function.
 // If passed to the WithHealthCheck, will set the ServerSettings.health.accessLogsEnabled to true.
-func HealthCheckAccessLog(enable bool) OptionHTTP[healthConfig] {
+func HealthCheckAccessLog(enable bool) Option[healthConfig] {
 	return func(c *healthConfig) { c.accessLogsEnabled = enable }
 }
 
 // HealthCheckMetricsForEndpoint represents an optional function for WithHealthCheck function.
 // If passed to the WithHealthCheck, will set the ServerSettings.health.metricsForEndpointEnabled to true.
-func HealthCheckMetricsForEndpoint(enable bool) OptionHTTP[healthConfig] {
+func HealthCheckMetricsForEndpoint(enable bool) Option[healthConfig] {
 	return func(c *healthConfig) { c.metricsForEndpointEnabled = enable }
 }
 
@@ -167,8 +168,8 @@ func HealthCheckMetricsForEndpoint(enable bool) OptionHTTP[healthConfig] {
 // - MetricsRoute - to set the endpoint route.
 // - MetricsAccessLog - to enable access log for endpoint.
 // - MetricsMetricsForEndpoint - to enable metrics collection for endpoint.
-func WithMetrics(options ...OptionHTTP[metricsConfig]) OptionHTTP[httpConfig] {
-	return func(s *httpConfig) {
+func WithMetrics(options ...Option[metricsConfig]) Option[config] {
+	return func(s *config) {
 		s.metrics.enable = true
 
 		for _, opt := range options {
@@ -179,25 +180,25 @@ func WithMetrics(options ...OptionHTTP[metricsConfig]) OptionHTTP[httpConfig] {
 
 // MetricsRoute represents an optional function for WithMetrics function.
 // If passed to the WithMetrics, will set the ServerSettings.health.route.
-func MetricsRoute(route string) OptionHTTP[metricsConfig] {
+func MetricsRoute(route string) Option[metricsConfig] {
 	return func(c *metricsConfig) { c.route = route }
 }
 
 // MetricsAccessLog represents an optional function for WithMetrics function.
 // If passed to the WithMetrics, will set the ServerSettings.health.accessLogsEnabled to true.
-func MetricsAccessLog(enable bool) OptionHTTP[metricsConfig] {
+func MetricsAccessLog(enable bool) Option[metricsConfig] {
 	return func(c *metricsConfig) { c.accessLogsEnabled = enable }
 }
 
 // MetricsMetricsForEndpoint represents an optional function for WithMetrics function.
 // If passed to the WithMetrics, will set the ServerSettings.health.metricsForEndpointEnabled to true.
-func MetricsMetricsForEndpoint(enable bool) OptionHTTP[metricsConfig] {
+func MetricsMetricsForEndpoint(enable bool) Option[metricsConfig] {
 	return func(c *metricsConfig) { c.metricsForEndpointEnabled = enable }
 }
 
 // WithProfiler turns on the profiler endpoint.
-func WithProfiler(cfg pprofConfig) OptionHTTP[httpConfig] {
-	return func(s *httpConfig) {
+func WithProfiler(cfg pprofConfig) Option[config] {
+	return func(s *config) {
 		s.profiler.enable = true
 		s.profiler.accessLogsEnabled = cfg.accessLogsEnabled
 
@@ -219,9 +220,9 @@ type ListenerHTTP struct {
 }
 
 // NewListenerHTTP creates a new ListenerHTTP with the specified address and options.
-// The options parameter is a variadic argument that accepts functions of type OptionHTTP.
+// The options parameter is a variadic argument that accepts functions of type Option.
 // The ListenerHTTP instance is returned, which can be used to mount routes and start serving requests.
-func NewListenerHTTP(addr string, options ...OptionHTTP[httpConfig]) (*ListenerHTTP, error) {
+func NewListenerHTTP(addr string, options ...Option[config]) (*ListenerHTTP, error) {
 	router := chi.NewRouter()
 
 	l := ListenerHTTP{
@@ -234,6 +235,9 @@ func NewListenerHTTP(addr string, options ...OptionHTTP[httpConfig]) (*ListenerH
 
 	// Apply all option to the default applyOptionsHTTP.
 	cfg := applyOptionsHTTP(options...)
+
+	// Set listener logger.
+	l.logger = cfg.logger
 
 	if l.enableTLS {
 		if err := l.configureTLS(cfg); err != nil {
@@ -300,7 +304,7 @@ func (l *ListenerHTTP) Serve(ctx context.Context) error {
 			slog.String("error", err.Error()),
 		)
 
-		return fmt.Errorf("%w: %s", ErrGracefullyShutdown, err.Error())
+		return fmt.Errorf("%w: %s", servekit.ErrGracefullyShutdown, err.Error())
 	}
 
 	return nil
@@ -361,27 +365,27 @@ func (l *ListenerHTTP) handleShutdown(ctx context.Context) error {
 			slog.String("error", err.Error()),
 		)
 
-		return fmt.Errorf("%w: %s", ErrGracefullyShutdown, err.Error())
+		return fmt.Errorf("%w: %s", servekit.ErrGracefullyShutdown, err.Error())
 	}
 
 	return nil
 }
 
-// httpConfig holds ListenerHTTP configuration.
-type httpConfig struct {
+// config holds ListenerHTTP configuration.
+type config struct {
 	cert, key string
 
 	// logger represents a logger for HTTP server.
 	logger *slog.Logger
 
 	// timeouts holds an HTTP server timeouts configuration.
-	timeouts httpTimeoutsConfig
+	timeouts timeoutsConfig
 
 	// globalMiddlewares holds a set of router-wide HTTP middlewares,
 	// which are applied to each endpoint.
 	globalMiddlewares []midkit.Middleware
 
-	// cors holds httpConfig for cors.
+	// cors holds config for cors.
 	cors corsConfig
 
 	// health holds configuration of health endpoint.
@@ -394,9 +398,9 @@ type httpConfig struct {
 	profiler pprofConfig
 }
 
-func applyOptionsHTTP(options ...OptionHTTP[httpConfig]) httpConfig {
-	cfg := httpConfig{
-		timeouts: httpTimeoutsConfig{
+func applyOptionsHTTP(options ...Option[config]) config {
+	cfg := config{
+		timeouts: timeoutsConfig{
 			readHeaderTimeout: readHeaderTimeout,
 			readTimeout:       readTimeout,
 			writeTimeout:      writeTimeout,
@@ -450,13 +454,13 @@ func applyOptionsHTTP(options ...OptionHTTP[httpConfig]) httpConfig {
 	return cfg
 }
 
-func (l *ListenerHTTP) configureTLS(cfg httpConfig) error {
+func (l *ListenerHTTP) configureTLS(cfg config) error {
 	if cfg.cert == "" {
-		return ErrCertPathRequired
+		return servekit.ErrCertPathRequired
 	}
 
 	if cfg.key == "" {
-		return ErrPrivateKeyPathRequired
+		return servekit.ErrPrivateKeyPathRequired
 	}
 
 	l.enableTLS = true
@@ -466,7 +470,7 @@ func (l *ListenerHTTP) configureTLS(cfg httpConfig) error {
 	return nil
 }
 
-func (l *ListenerHTTP) configureHealth(cfg httpConfig) error {
+func (l *ListenerHTTP) configureHealth(cfg config) error {
 	if cfg.health.enable {
 		if cfg.health.route == "" {
 			return fmt.Errorf("empty health route")
@@ -496,7 +500,7 @@ func (l *ListenerHTTP) configureHealth(cfg httpConfig) error {
 	return nil
 }
 
-func (l *ListenerHTTP) configureMetrics(cfg httpConfig) error {
+func (l *ListenerHTTP) configureMetrics(cfg config) error {
 	if cfg.metrics.enable {
 		if cfg.metrics.route == "" {
 			return fmt.Errorf("empty metrics route")
@@ -524,7 +528,7 @@ func (l *ListenerHTTP) configureMetrics(cfg httpConfig) error {
 	return nil
 }
 
-func (l *ListenerHTTP) configureProfiler(cfg httpConfig) error {
+func (l *ListenerHTTP) configureProfiler(cfg config) error {
 	if cfg.profiler.enable {
 		if cfg.profiler.route == "" {
 			return fmt.Errorf("empty profiler route")
@@ -549,7 +553,7 @@ func (l *ListenerHTTP) configureProfiler(cfg httpConfig) error {
 	return nil
 }
 
-func (l *ListenerHTTP) configureCORS(cfg httpConfig) error {
+func (l *ListenerHTTP) configureCORS(cfg config) error {
 	if cfg.cors.enable {
 		if len(cfg.cors.allowedOrigins) == 0 {
 			return errors.New("cors misconfiguration: at least one origin should be specified")
@@ -567,8 +571,8 @@ func (l *ListenerHTTP) configureCORS(cfg httpConfig) error {
 	return nil
 }
 
-// httpTimeoutsConfig holds an HTTP server httpTimeoutsConfig configuration.
-type httpTimeoutsConfig struct {
+// timeoutsConfig holds an HTTP server timeoutsConfig configuration.
+type timeoutsConfig struct {
 	// readTimeout represents the http.Server ReadTimeout.
 	readTimeout time.Duration
 

@@ -1,4 +1,4 @@
-package servekit
+package grpckit
 
 import (
 	"context"
@@ -6,34 +6,50 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"time"
 
+	"github.com/plainq/servekit"
 	"github.com/plainq/servekit/midkit"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
-// OptionGRPC implements functional options pattern for the ListenerGRPC type.
+const (
+	// shutdownTimeout represents server default shutdown timeout.
+	shutdownTimeout = 5 * time.Second
+)
+
+// Option implements functional options pattern for the ListenerGRPC type.
 // Represents a function which receive a pointer to the generic struct that represents
 // a part of ListenerGRPC configuration and changes it default values to the given ones.
 //
 // See the applyOptionsGRPC function to understand the configuration behaviour.
-// OptionGRPC functions should only be passed to ListenerGRPC constructor function NewListenerGRPC.
-type OptionGRPC[T grpcConfig] func(o *T)
+// Option functions should only be passed to ListenerGRPC constructor function NewListenerGRPC.
+type Option[T config] func(o *T)
+
+// WithLogger sets the server logger.
+func WithLogger(logger *slog.Logger) Option[config] {
+	return func(s *config) {
+		if logger != nil {
+			s.logger = logger
+		}
+	}
+}
 
 // WithUnaryInterceptors is a function that takes a variable number of UnaryInterceptor functions
-// and returns an OptionGRPC[grpcConfig]. This function is used to add UnaryInterceptors to the
-// unaryInterceptors field of the grpcConfig struct.
-func WithUnaryInterceptors(interceptors ...midkit.UnaryInterceptor) OptionGRPC[grpcConfig] {
-	return func(o *grpcConfig) {
+// and returns an Option[config]. This function is used to add UnaryInterceptors to the
+// unaryInterceptors field of the config struct.
+func WithUnaryInterceptors(interceptors ...midkit.UnaryInterceptor) Option[config] {
+	return func(o *config) {
 		o.unaryInterceptors = append(o.unaryInterceptors, interceptors...)
 	}
 }
 
 // WithStreamInterceptors is a function that takes a variable number of StreamInterceptor functions
-// and returns an OptionGRPC[grpcConfig]. This function is used to add StreamInterceptors to the
-// streamInterceptors field of the grpcConfig struct.
-func WithStreamInterceptors(interceptors ...midkit.StreamInterceptor) OptionGRPC[grpcConfig] {
-	return func(o *grpcConfig) {
+// and returns an Option[config]. This function is used to add StreamInterceptors to the
+// streamInterceptors field of the config struct.
+func WithStreamInterceptors(interceptors ...midkit.StreamInterceptor) Option[config] {
+	return func(o *config) {
 		o.streamInterceptors = append(o.streamInterceptors, interceptors...)
 	}
 }
@@ -54,7 +70,7 @@ type ListenerGRPC struct {
 // NewListenerGRPC creates a new ListenerGRPC instance by creating a gRPC listener using a given address.
 // It applies all the options to a default `applyOptionsGRPC` instance and sets the server options with
 // the provided unary and stream interceptors. Finally, it returns the ListenerGRPC instance and potential error.
-func NewListenerGRPC(addr string, options ...OptionGRPC[grpcConfig]) (*ListenerGRPC, error) {
+func NewListenerGRPC(addr string, options ...Option[config]) (*ListenerGRPC, error) {
 	listener, grpcListenerErr := net.Listen("tcp", addr)
 	if grpcListenerErr != nil {
 		return nil, fmt.Errorf("create gRPC listener: %w", grpcListenerErr)
@@ -69,6 +85,7 @@ func NewListenerGRPC(addr string, options ...OptionGRPC[grpcConfig]) (*ListenerG
 	}
 
 	l := ListenerGRPC{
+		logger:   cfg.logger,
 		listener: listener,
 		server:   grpc.NewServer(serverOptions...),
 	}
@@ -102,7 +119,7 @@ func (l *ListenerGRPC) Serve(ctx context.Context) error {
 	})
 
 	if err := g.Wait(); err != nil {
-		if errors.Is(err, ErrGracefullyShutdown) {
+		if errors.Is(err, servekit.ErrGracefullyShutdown) {
 			panic(err)
 		}
 
@@ -150,14 +167,14 @@ func (l *ListenerGRPC) handleShutdown(ctx context.Context) error {
 			slog.String("error", err.Error()),
 		)
 
-		return fmt.Errorf("%w: %s", ErrGracefullyShutdown, err.Error())
+		return fmt.Errorf("%w: %s", servekit.ErrGracefullyShutdown, err.Error())
 	}
 
 	return nil
 }
 
-func applyOptionsGRPC(options ...OptionGRPC[grpcConfig]) grpcConfig {
-	cfg := grpcConfig{
+func applyOptionsGRPC(options ...Option[config]) config {
+	cfg := config{
 		unaryInterceptors:  make([]midkit.UnaryInterceptor, 0),
 		streamInterceptors: make([]midkit.StreamInterceptor, 0),
 	}
@@ -169,8 +186,9 @@ func applyOptionsGRPC(options ...OptionGRPC[grpcConfig]) grpcConfig {
 	return cfg
 }
 
-// grpcConfig represents a struct that holds the configuration options for a gRPC server.
-type grpcConfig struct {
+// config represents a struct that holds the configuration options for a gRPC server.
+type config struct {
+	logger             *slog.Logger
 	unaryInterceptors  []midkit.UnaryInterceptor
 	streamInterceptors []midkit.StreamInterceptor
 }
