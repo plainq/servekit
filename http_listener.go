@@ -241,6 +241,13 @@ func NewListenerHTTP(addr string, options ...OptionHTTP[httpConfig]) (*ListenerH
 		}
 	}
 
+	if err := l.configureCORS(cfg); err != nil {
+		return nil, fmt.Errorf("configure cors: %w", err)
+	}
+
+	// Use global middlewares.
+	l.router.Use(cfg.globalMiddlewares...)
+
 	if err := l.configureHealth(cfg); err != nil {
 		return nil, fmt.Errorf("configure health: %w", err)
 	}
@@ -252,13 +259,6 @@ func NewListenerHTTP(addr string, options ...OptionHTTP[httpConfig]) (*ListenerH
 	if err := l.configureProfiler(cfg); err != nil {
 		return nil, fmt.Errorf("configure profiler: %w", err)
 	}
-
-	if err := l.configureCORS(cfg); err != nil {
-		return nil, fmt.Errorf("configure cors: %w", err)
-	}
-
-	// Use global middlewares.
-	l.router.Use(cfg.globalMiddlewares...)
 
 	return &l, nil
 }
