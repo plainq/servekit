@@ -204,9 +204,6 @@ func WithJournalMode(mode JournalMode) Option {
 	return func(c *Conn) { c.journalingMode = mode }
 }
 
-type ConnOptions struct {
-}
-
 type Conn struct {
 	*sql.DB
 

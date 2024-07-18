@@ -15,6 +15,25 @@ import (
 )
 
 const (
+	schema = `
+		create table if not exists "schema_version"
+		(
+			id         int       default 0                 not null,
+			version    int       default 0                 not null,
+			created_at timestamp default current_timestamp not null,
+			updated_at timestamp default current_timestamp not null,
+		
+			constraint schema_version_pk
+				primary key (id)
+		);
+		
+		create unique index if not exists id_uindex
+			on schema_version (id);
+		
+		insert into schema_version default
+		values;
+	`
+
 	querySelectSchemaVersionTable = `select name from sqlite_master where type='table' and name='schema_version';`
 	querySelectSchemaVersionInfo  = `select * from schema_version where id=0;`
 	queryUpdateSchemaVersionInfo  = `update schema_version set version = ? where id = 0;`
@@ -39,6 +58,20 @@ type SchemaVersionInfo struct {
 	UpdatedAt time.Time
 }
 
+// WithBackupBeforeMutations returns an EvolverOption that sets
+// the backupBeforeMutations field of the Evolver to true.
+func WithBackupBeforeMutations() EvolverOption {
+	return func(e *Evolver) { e.backupBeforeMutations = true }
+}
+
+// WithMutationTimeout returns an EvolverOption that sets
+// the mutationTimeout field of the Evolver to the specified timeout value.
+func WithMutationTimeout(timeout time.Duration) EvolverOption {
+	return func(e *Evolver) { e.mutationTimeout = timeout }
+}
+
+type EvolverOption func(*Evolver)
+
 // Evolver is responsible for database schema evolution.
 type Evolver struct {
 	db *Conn
@@ -55,7 +88,7 @@ type Evolver struct {
 }
 
 // NewEvolver creates a new instance of Evolver.
-func NewEvolver(db *Conn, mutations fs.FS) (*Evolver, error) {
+func NewEvolver(db *Conn, mutations fs.FS, options ...EvolverOption) (*Evolver, error) {
 	if db == nil {
 		return nil, errors.New("db is nil")
 	}
@@ -65,6 +98,10 @@ func NewEvolver(db *Conn, mutations fs.FS) (*Evolver, error) {
 		mutations:             mutations,
 		backupBeforeMutations: false,
 		mutationTimeout:       mutationTimeout,
+	}
+
+	for _, option := range options {
+		option(&e)
 	}
 
 	return &e, nil
@@ -92,15 +129,19 @@ func (e *Evolver) MutateSchema() (eErr error) {
 		}
 	}
 
-	if schemaVersionTableExist {
-		if err := e.db.QueryRowContext(ctx, querySelectSchemaVersionInfo).Scan(
-			&schemaVersionInfo.ID,
-			&schemaVersionInfo.Version,
-			&schemaVersionInfo.CreatedAt,
-			&schemaVersionInfo.UpdatedAt,
-		); err != nil {
-			return fmt.Errorf("get schema_version info: %w", err)
+	if !schemaVersionTableExist {
+		if _, err := e.db.ExecContext(ctx, schema); err != nil {
+			return fmt.Errorf("create schema_version table: %w", err)
 		}
+	}
+
+	if err := e.db.QueryRowContext(ctx, querySelectSchemaVersionInfo).Scan(
+		&schemaVersionInfo.ID,
+		&schemaVersionInfo.Version,
+		&schemaVersionInfo.CreatedAt,
+		&schemaVersionInfo.UpdatedAt,
+	); err != nil {
+		return fmt.Errorf("get schema_version info: %w", err)
 	}
 
 	mutations, loadErr := e.loadMutations()
