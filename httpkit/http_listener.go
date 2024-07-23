@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/heartwilltell/hc"
 	"github.com/plainq/servekit"
+	"github.com/plainq/servekit/logkit"
 	"github.com/plainq/servekit/midkit"
 	"github.com/plainq/servekit/tern"
 	"golang.org/x/sync/errgroup"
@@ -267,6 +268,10 @@ func NewListenerHTTP(addr string, options ...Option[config]) (*ListenerHTTP, err
 	return &l, nil
 }
 
+func (l *ListenerHTTP) MountGroup(route string, fn func(r chi.Router)) {
+	l.router.Route(route, fn)
+}
+
 func (l *ListenerHTTP) Mount(route string, handler http.Handler, middlewares ...midkit.Middleware) {
 	l.router.Route(route, func(r chi.Router) {
 		r.Use(middlewares...)
@@ -400,6 +405,8 @@ type config struct {
 
 func applyOptionsHTTP(options ...Option[config]) config {
 	cfg := config{
+		logger: logkit.New(logkit.WithLevel(slog.LevelInfo)),
+
 		timeouts: timeoutsConfig{
 			readHeaderTimeout: readHeaderTimeout,
 			readTimeout:       readTimeout,

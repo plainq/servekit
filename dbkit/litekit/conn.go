@@ -3,12 +3,21 @@ package litekit
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"io"
+	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/benbjohnson/litestream"
+	"github.com/benbjohnson/litestream/file"
+	"github.com/benbjohnson/litestream/s3"
 	"github.com/heartwilltell/hc"
 	_ "github.com/mattn/go-sqlite3" //nolint // driver.
+	"github.com/plainq/servekit/logkit"
 )
 
 // Compilation time check that Conn implements the hc.HealthChecker.
@@ -204,8 +213,54 @@ func WithJournalMode(mode JournalMode) Option {
 	return func(c *Conn) { c.journalingMode = mode }
 }
 
+// WithBackupToS3 sets backup to S3-like storages.
+func WithBackupToS3(cfg S3BackupConfig) Option {
+	return func(c *Conn) {
+		c.backup = true
+		c.backupTo = S3
+		c.backupS3 = cfg
+	}
+}
+
+// S3BackupConfig holds S3 backup configuration.
+type S3BackupConfig struct {
+	RestoreTimeout  time.Duration
+	AccessKeyID     string
+	SecretAccessKey string
+	Bucket          string
+	Region          string
+	Endpoint        string
+}
+
+// FileBackupConfig holds file backup configuration.
+type FileBackupConfig struct {
+	RestoreTimeout time.Duration
+	Path           string
+}
+
+// WithBackupToFile sets backup to a file.
+func WithBackupToFile(cfg FileBackupConfig) Option {
+	return func(c *Conn) {
+		c.backup = true
+		c.backupTo = File
+		c.backupFile = cfg
+	}
+}
+
+// To represents backup destination type.
+type To byte
+
+const (
+	// S3 represents backup destination to S3-like storages.
+	S3 To = iota + 1
+
+	// File represents backup destination to a file.
+	File
+)
+
 type Conn struct {
 	*sql.DB
+	logger *slog.Logger
 
 	// path holds an absolute path to the database file.
 	path string
@@ -217,6 +272,13 @@ type Conn struct {
 	// journalingMode represents SQLite journaling mode.
 	// https://www.sqlite.org/pragma.html#pragma_journal_mode
 	journalingMode JournalMode
+
+	backup               bool
+	backupCloser         io.Closer
+	backupTo             To
+	backupS3             S3BackupConfig
+	backupFile           FileBackupConfig
+	backupRestoreTimeout time.Duration
 }
 
 func New(path string, options ...Option) (*Conn, error) {
@@ -227,6 +289,7 @@ func New(path string, options ...Option) (*Conn, error) {
 
 	conn := Conn{
 		DB:             nil,
+		logger:         logkit.NewNop(),
 		path:           absPath,
 		accessMode:     ReadWriteCreate,
 		journalingMode: WAL,
@@ -236,21 +299,33 @@ func New(path string, options ...Option) (*Conn, error) {
 		option(&conn)
 	}
 
+	conn.logger.Debug("Setting up database backups")
+
+	if conn.backup {
+		if err := conn.configureBackups(); err != nil {
+			return nil, fmt.Errorf("sqlite: setup backups: %w", err)
+		}
+	}
+
 	connString, connStringErr := conn.connString()
 	if connStringErr != nil {
-		return nil, fmt.Errorf("parsing connection string: %w", connStringErr)
+		return nil, fmt.Errorf("sqlite: parsing connection string: %w", connStringErr)
 	}
+
+	conn.logger.Debug("Opening database connection")
 
 	db, openErr := sql.Open("sqlite3", connString)
 	if openErr != nil {
-		return nil, fmt.Errorf("open database: %w", openErr)
+		return nil, fmt.Errorf("sqlite: open database: %w", openErr)
 	}
 
 	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("connect to database: %w", err)
+		return nil, fmt.Errorf("sqlite: connect to database: %w", err)
 	}
 
 	conn.DB = db
+
+	conn.logger.Debug("Database connection has been established")
 
 	return &conn, nil
 }
@@ -260,6 +335,124 @@ func (c *Conn) Health(ctx context.Context) error {
 	if err := c.PingContext(ctx); err != nil {
 		return fmt.Errorf("sqlite: health check: %w", err)
 	}
+
+	return nil
+}
+
+func (c *Conn) Close() (closeErr error) {
+	if c.backup && c.backupCloser != nil {
+		if err := c.backupCloser.Close(); err != nil {
+			errors.Join(closeErr, fmt.Errorf("close backup file: %w", err))
+		}
+	}
+
+	if err := c.DB.Close(); err != nil {
+		errors.Join(closeErr, fmt.Errorf("close database connection: %w", err))
+	}
+
+	return closeErr
+}
+
+func (c *Conn) configureBackups() error {
+	lsdb := litestream.NewDB(c.path)
+	lsdb.Logger = c.logger
+
+	var rc litestream.ReplicaClient
+
+	c.logger.Debug("Creating replica client")
+
+	switch c.backupTo {
+	case S3:
+		client := s3.NewReplicaClient()
+		client.AccessKeyID = c.backupS3.AccessKeyID
+		client.SecretAccessKey = c.backupS3.SecretAccessKey
+		client.Bucket = c.backupS3.Bucket
+		client.Endpoint = c.backupS3.Endpoint
+		client.Region = c.backupS3.Region
+		c.backupRestoreTimeout = c.backupS3.RestoreTimeout
+
+		rc = client
+
+		c.logger.Debug("Replica client has been configured to backup to S3",
+			slog.String("bucket", c.backupS3.Bucket),
+			slog.String("endpoint", c.backupS3.Endpoint),
+			slog.String("region", c.backupS3.Region),
+		)
+
+	case File:
+		rc = file.NewReplicaClient(c.backupFile.Path)
+		c.backupRestoreTimeout = c.backupFile.RestoreTimeout
+
+		c.logger.Debug("Replica client has been configured to backup to file",
+			slog.String("path", c.backupFile.Path),
+		)
+
+	default:
+		return fmt.Errorf("unknown backup destination type: %q", c.backupTo)
+	}
+
+	lsr := litestream.NewReplica(lsdb, "main")
+	lsr.Client = rc
+
+	lsdb.Replicas = append(lsdb.Replicas, lsr)
+
+	c.logger.Debug("Replica has been attached to litestream")
+
+	ctx, cancel := context.WithTimeout(context.Background(), c.backupRestoreTimeout)
+	defer cancel()
+
+	if err := c.restoreBackup(ctx, lsr); err != nil {
+		return fmt.Errorf("restore backup: %w", err)
+	}
+
+	if err := lsdb.Open(); err != nil {
+		return fmt.Errorf("open database for replication: %w", err)
+	}
+
+	c.backupCloser = lsdb
+
+	return nil
+}
+
+func (c *Conn) restoreBackup(ctx context.Context, replica *litestream.Replica) error {
+	if _, err := os.Stat(replica.DB().Path()); err == nil {
+		c.logger.Debug("Database file already exists, skipping restore")
+
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("get database file stats: %w", err)
+	}
+
+	// Configure restore to write out to DSN path.
+	opt := litestream.NewRestoreOptions()
+	opt.OutputPath = replica.DB().Path()
+
+	// Determine the latest generation to restore from.
+	gen, updatedAt, restoreErr := replica.CalcRestoreTarget(ctx, opt)
+	if restoreErr != nil {
+		return fmt.Errorf("")
+	}
+
+	opt.Generation = gen
+
+	// Only restore if there is a generation available on the replica.
+	// Otherwise, we'll let the application create a new database.
+	if opt.Generation == "" {
+		c.logger.Debug("No generation found, creating new database")
+
+		return nil
+	}
+
+	c.logger.Debug("Restoring replica for generation",
+		slog.String("generation", opt.Generation),
+		slog.Time("updatedAt", updatedAt),
+	)
+
+	if err := replica.Restore(ctx, opt); err != nil {
+		return err
+	}
+
+	c.logger.Debug("Restore completed successfully")
 
 	return nil
 }

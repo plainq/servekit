@@ -1,11 +1,15 @@
 package logkit
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/lmittmann/tint"
 )
 
 const (
@@ -44,6 +48,8 @@ type Options struct {
 	writer io.Writer
 	level  *slog.LevelVar
 
+	timeFormat string
+	withColor  bool
 	withSource bool
 	withJSON   bool
 }
@@ -57,20 +63,26 @@ func WithWriter(w io.Writer) Option { return func(o *Options) { o.writer = w } }
 // WithLevel changes the underlying logging level of slog.Logger to the given on.
 func WithLevel(level slog.Level) Option { return func(o *Options) { o.level.Set(level) } }
 
-// WithJSON creates an Option that enables JSON formatting for log messages. When this Option is applied,
-// log messages will be formatted as JSON objects.
-// This Option modifies the 'withJSON' field of the Options struct.
-// Example:
-// options := &Options{}
-// opt := WithJSON()
-// opt(options)
-// After applying the WithJSON Option, options.withJSON field will be set to true.
+// WithJSON creates an Option that enables JSON formatting for log messages.
+// When this Option is applied, log messages will be formatted as JSON objects.
 func WithJSON() Option { return func(o *Options) { o.withJSON = true } }
+
+// WithSource creates an Option that enables source code line number formatting for log messages.
+// When this Option is applied, log messages will contain source code line number.
+func WithSource() Option { return func(o *Options) { o.withSource = true } }
+
+// WithColor creates an Option that enables color formatting for log messages.
+// Will not take effect ff WithJSON is applied.
+func WithColor() Option { return func(o *Options) { o.withColor = true } }
+
+// WithTimeFormat creates an Option that change the time formatting for log messages.
+func WithTimeFormat(format string) Option { return func(o *Options) { o.timeFormat = format } }
 
 func New(options ...Option) *slog.Logger {
 	o := Options{
-		level:  &slog.LevelVar{},
-		writer: os.Stderr,
+		level:      &slog.LevelVar{},
+		writer:     os.Stderr,
+		timeFormat: time.DateTime,
 	}
 
 	for _, option := range options {
@@ -90,8 +102,23 @@ func New(options ...Option) *slog.Logger {
 		handler = slog.NewJSONHandler(o.writer, &handlerOptions)
 
 	default:
-		handler = slog.NewTextHandler(o.writer, &handlerOptions)
+		handler = tint.NewHandler(o.writer, &tint.Options{
+			AddSource:  o.withSource,
+			Level:      o.level,
+			TimeFormat: o.timeFormat,
+			NoColor:    o.withColor,
+		})
 	}
 
 	return slog.New(handler)
 }
+
+// NewNop returns a new disabled logger that logs nothing.
+func NewNop() *slog.Logger { return slog.New(&noopHandler{}) }
+
+type noopHandler struct{}
+
+func (h noopHandler) Enabled(context.Context, slog.Level) bool  { return false }
+func (h noopHandler) Handle(context.Context, slog.Record) error { return nil }
+func (h noopHandler) WithAttrs([]slog.Attr) slog.Handler        { return h }
+func (h noopHandler) WithGroup(string) slog.Handler             { return h }
