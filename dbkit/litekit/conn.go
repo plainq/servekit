@@ -342,12 +342,12 @@ func (c *Conn) Health(ctx context.Context) error {
 func (c *Conn) Close() (closeErr error) {
 	if c.backup && c.backupCloser != nil {
 		if err := c.backupCloser.Close(); err != nil {
-			errors.Join(closeErr, fmt.Errorf("close backup file: %w", err))
+			closeErr = errors.Join(closeErr, fmt.Errorf("close backup file: %w", err))
 		}
 	}
 
 	if err := c.DB.Close(); err != nil {
-		errors.Join(closeErr, fmt.Errorf("close database connection: %w", err))
+		closeErr = errors.Join(closeErr, fmt.Errorf("close database connection: %w", err))
 	}
 
 	return closeErr

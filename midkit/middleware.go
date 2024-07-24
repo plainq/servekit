@@ -39,7 +39,7 @@ func LoggingMiddleware(logger *slog.Logger) Middleware {
 
 			status := ww.Status()
 
-			logger = logger.With(
+			mwLogger := logger.With(
 				slog.String("method", r.Method),
 				slog.String("status", strconv.Itoa(status)),
 				slog.String("route", r.RequestURI),
@@ -49,16 +49,16 @@ func LoggingMiddleware(logger *slog.Logger) Middleware {
 
 			if status >= http.StatusInternalServerError {
 				if reqErr != nil {
-					logger.Error(strconv.Itoa(status)+" "+http.StatusText(status),
+					mwLogger.Error(strconv.Itoa(status)+" "+http.StatusText(status),
 						slog.String("error", reqErr.Error()),
 					)
 
 					return
 				}
 
-				logger.Error(strconv.Itoa(status) + " " + http.StatusText(status))
+				mwLogger.Error(strconv.Itoa(status) + " " + http.StatusText(status))
 			} else {
-				logger.Info(strconv.Itoa(status) + " " + http.StatusText(status))
+				mwLogger.Info(strconv.Itoa(status) + " " + http.StatusText(status))
 			}
 		}
 

@@ -39,12 +39,6 @@ func New(connstr string) (*Conn, error) {
 	return &Conn{Pool: pgConn}, nil
 }
 
-func (c *Conn) DeferredRollback(ctx context.Context, tx pgx.Tx, deferredErr *error) {
-	if err := tx.Rollback(ctx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
-		*deferredErr = errors.Join(*deferredErr, err)
-	}
-}
-
 func (c *Conn) Close() error {
 	c.Pool.Close()
 	return nil
@@ -58,25 +52,25 @@ func (c *Conn) Health(ctx context.Context) error {
 	return nil
 }
 
-func PgError(err error) (error, bool) {
+func PgError(err error) (bool, error) {
 	var pgErr *pgconn.PgError
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return errkit.ErrNotFound, true
+		return true, errkit.ErrNotFound
 	}
 
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
 		case "02000":
-			return fmt.Errorf("postgres: %w: %s", errkit.ErrNotFound, pgErr.Detail), true
+			return true, fmt.Errorf("postgres: %w: %s", errkit.ErrNotFound, pgErr.Detail)
 
 		case "23505":
-			return fmt.Errorf("postgres: %w: %s", errkit.ErrAlreadyExists, pgErr.Detail), true
+			return true, fmt.Errorf("postgres: %w: %s", errkit.ErrAlreadyExists, pgErr.Detail)
 
 		default:
-			return errkit.Error(fmt.Sprintf("postgres: %s", pgErr.Error())), true
+			return true, errkit.Error(fmt.Sprintf("postgres: %s", pgErr.Error()))
 		}
 	}
 
-	return err, false
+	return false, err
 }

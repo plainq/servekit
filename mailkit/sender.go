@@ -25,7 +25,7 @@ type Message struct {
 	Bcc         []string          `json:"bcc,omitempty"`
 	Cc          []string          `json:"cc,omitempty"`
 	ReplyTo     string            `json:"reply_to,omitempty"`
-	Html        string            `json:"html,omitempty"`
+	HTML        string            `json:"html,omitempty"`
 	Text        string            `json:"text,omitempty"`
 	Tags        []Tag             `json:"tags,omitempty"`
 	Attachments []*Attachment     `json:"attachments,omitempty"`
@@ -38,7 +38,7 @@ type Tag struct {
 	Value string `json:"value"`
 }
 
-// Attachment is the public struct used for adding attachments to emails
+// Attachment is the public struct used for adding attachments to emails.
 type Attachment struct {
 	// Content is the binary content of the attachment to use when a Path
 	// is not available.
@@ -46,7 +46,7 @@ type Attachment struct {
 
 	// Filename that will appear in the email.
 	// Make sure you pick the correct extension otherwise preview
-	// may not work as expected
+	// may not work as expected.
 	Filename string `json:"filename"`
 
 	// Path where the attachment file is hosted instead of providing the
@@ -54,6 +54,6 @@ type Attachment struct {
 	Path string `json:"path"`
 
 	// Content type for the attachment, if not set will be derived from
-	// the filename property
+	// the filename property.
 	ContentType string `json:"contentType"`
 }

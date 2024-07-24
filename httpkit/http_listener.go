@@ -560,7 +560,7 @@ func (l *ListenerHTTP) configureProfiler(cfg config) error {
 	return nil
 }
 
-func (l *ListenerHTTP) configureCORS(cfg config) error {
+func (*ListenerHTTP) configureCORS(cfg config) error {
 	if cfg.cors.enable {
 		if len(cfg.cors.allowedOrigins) == 0 {
 			return errors.New("cors misconfiguration: at least one origin should be specified")

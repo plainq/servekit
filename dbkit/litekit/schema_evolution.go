@@ -108,31 +108,13 @@ func NewEvolver(db *Conn, mutations fs.FS, options ...EvolverOption) (*Evolver, 
 }
 
 func (e *Evolver) MutateSchema() (eErr error) {
-	schemaVersionTableExist := true
-
-	schemaVersionInfo := SchemaVersionInfo{
-		Version: 0,
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), e.mutationTimeout)
 	defer cancel()
 
-	var svt string
+	var schemaVersionInfo SchemaVersionInfo
 
-	if err := e.db.QueryRowContext(ctx, querySelectSchemaVersionTable).Scan(&svt); err != nil {
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			schemaVersionTableExist = false
-
-		default:
-			return fmt.Errorf("check schema_version table exist: %w", err)
-		}
-	}
-
-	if !schemaVersionTableExist {
-		if _, err := e.db.ExecContext(ctx, schema); err != nil {
-			return fmt.Errorf("create schema_version table: %w", err)
-		}
+	if err := e.ensureSchemaVersionTable(ctx); err != nil {
+		return err
 	}
 
 	if err := e.db.QueryRowContext(ctx, querySelectSchemaVersionInfo).Scan(
@@ -186,6 +168,25 @@ func (e *Evolver) MutateSchema() (eErr error) {
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+func (e *Evolver) ensureSchemaVersionTable(ctx context.Context) error {
+	var svt string
+
+	if err := e.db.QueryRowContext(ctx, querySelectSchemaVersionTable).Scan(&svt); err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			// Create schema_version table.
+			if _, err := e.db.ExecContext(ctx, schema); err != nil {
+				return fmt.Errorf("create schema_version table: %w", err)
+			}
+
+		default:
+			return fmt.Errorf("check schema_version table exist: %w", err)
+		}
 	}
 
 	return nil

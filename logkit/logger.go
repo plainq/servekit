@@ -118,7 +118,7 @@ func NewNop() *slog.Logger { return slog.New(&noopHandler{}) }
 
 type noopHandler struct{}
 
-func (h noopHandler) Enabled(context.Context, slog.Level) bool  { return false }
-func (h noopHandler) Handle(context.Context, slog.Record) error { return nil }
-func (h noopHandler) WithAttrs([]slog.Attr) slog.Handler        { return h }
-func (h noopHandler) WithGroup(string) slog.Handler             { return h }
+func (noopHandler) Enabled(context.Context, slog.Level) bool  { return false }
+func (noopHandler) Handle(context.Context, slog.Record) error { return nil }
+func (h noopHandler) WithAttrs([]slog.Attr) slog.Handler      { return h }
+func (h noopHandler) WithGroup(string) slog.Handler           { return h }

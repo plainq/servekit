@@ -39,7 +39,7 @@ func (s *ResendSender) Send(ctx context.Context, message mailkit.Message) error 
 		Bcc:         slices.Clone[[]string](message.Bcc),
 		Cc:          slices.Clone[[]string](message.Cc),
 		ReplyTo:     message.ReplyTo,
-		Html:        message.Html,
+		Html:        message.HTML,
 		Text:        message.Text,
 		Tags:        make([]resend.Tag, 0, len(message.Tags)),
 		Attachments: make([]*resend.Attachment, 0, len(message.Attachments)),
