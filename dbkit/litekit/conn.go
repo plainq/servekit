@@ -353,6 +353,10 @@ func (c *Conn) Close() (closeErr error) {
 	return closeErr
 }
 
+// configureBackups use litestream to restore and stream backups to S3-like
+// storages. Follow the examples and official documentations if you have any troubles.
+// https://litestream.io/getting-started
+// https://github.com/benbjohnson/litestream-library-example/blob/main/main.go
 func (c *Conn) configureBackups() error {
 	lsdb := litestream.NewDB(c.path)
 	lsdb.Logger = c.logger
