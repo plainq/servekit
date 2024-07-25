@@ -479,6 +479,10 @@ func (l *ListenerHTTP) configureTLS(cfg config) error {
 
 func (l *ListenerHTTP) configureHealth(cfg config) error {
 	if cfg.health.enable {
+		if cfg.health.healthChecker != nil {
+			l.health = cfg.health.healthChecker
+		}
+
 		if cfg.health.route == "" {
 			return fmt.Errorf("empty health route")
 		}
