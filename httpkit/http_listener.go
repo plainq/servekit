@@ -329,6 +329,7 @@ func (l *ListenerHTTP) healthCheckHandler(w http.ResponseWriter, r *http.Request
 	if l.health == nil {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
+		return
 	}
 
 	if err := l.health.Health(r.Context()); err != nil {
