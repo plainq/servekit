@@ -427,7 +427,7 @@ func applyOptionsHTTP(options ...Option[config]) config {
 		globalMiddlewares: []midkit.Middleware{},
 
 		cors: corsConfig{
-			enable:           true,
+			enable:           false,
 			allowCredentials: true,
 			allowedOrigins:   []string{"https://*", "http://*"},
 			allowedMethods: []string{
