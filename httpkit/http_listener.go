@@ -70,9 +70,18 @@ func WithGlobalMiddlewares(middlewares ...midkit.Middleware) Option[config] {
 // WithCORS configures the CORS config for Houston API routes.
 func WithCORS(options ...Option[corsConfig]) Option[config] {
 	return func(s *config) {
+		s.cors.enable = true
+
 		for _, option := range options {
 			option(&s.cors)
 		}
+	}
+}
+
+// CorsAllowOrigins adds origins to a lost of allowed origins for cors configuration.
+func CorsAllowOrigins(origins ...string) Option[corsConfig] {
+	return func(o *corsConfig) {
+		o.allowedOrigins = append(o.allowedOrigins, origins...)
 	}
 }
 
