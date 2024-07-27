@@ -1,4 +1,4 @@
-package midkit
+package grpckit
 
 import (
 	"context"

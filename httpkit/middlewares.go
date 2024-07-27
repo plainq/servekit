@@ -1,4 +1,4 @@
-package midkit
+package httpkit
 
 import (
 	"log/slog"
