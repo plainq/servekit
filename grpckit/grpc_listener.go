@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/plainq/servekit"
-	"github.com/plainq/servekit/midkit"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -39,7 +38,7 @@ func WithLogger(logger *slog.Logger) Option[config] {
 // WithUnaryInterceptors is a function that takes a variable number of UnaryInterceptor functions
 // and returns an Option[config]. This function is used to add UnaryInterceptors to the
 // unaryInterceptors field of the config struct.
-func WithUnaryInterceptors(interceptors ...midkit.UnaryInterceptor) Option[config] {
+func WithUnaryInterceptors(interceptors ...UnaryInterceptor) Option[config] {
 	return func(o *config) {
 		o.unaryInterceptors = append(o.unaryInterceptors, interceptors...)
 	}
@@ -48,7 +47,7 @@ func WithUnaryInterceptors(interceptors ...midkit.UnaryInterceptor) Option[confi
 // WithStreamInterceptors is a function that takes a variable number of StreamInterceptor functions
 // and returns an Option[config]. This function is used to add StreamInterceptors to the
 // streamInterceptors field of the config struct.
-func WithStreamInterceptors(interceptors ...midkit.StreamInterceptor) Option[config] {
+func WithStreamInterceptors(interceptors ...StreamInterceptor) Option[config] {
 	return func(o *config) {
 		o.streamInterceptors = append(o.streamInterceptors, interceptors...)
 	}
@@ -175,8 +174,8 @@ func (l *ListenerGRPC) handleShutdown(ctx context.Context) error {
 
 func applyOptionsGRPC(options ...Option[config]) config {
 	cfg := config{
-		unaryInterceptors:  make([]midkit.UnaryInterceptor, 0),
-		streamInterceptors: make([]midkit.StreamInterceptor, 0),
+		unaryInterceptors:  make([]UnaryInterceptor, 0),
+		streamInterceptors: make([]StreamInterceptor, 0),
 	}
 
 	for _, option := range options {
@@ -189,6 +188,6 @@ func applyOptionsGRPC(options ...Option[config]) config {
 // config represents a struct that holds the configuration options for a gRPC server.
 type config struct {
 	logger             *slog.Logger
-	unaryInterceptors  []midkit.UnaryInterceptor
-	streamInterceptors []midkit.StreamInterceptor
+	unaryInterceptors  []UnaryInterceptor
+	streamInterceptors []StreamInterceptor
 }

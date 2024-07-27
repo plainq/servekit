@@ -15,7 +15,6 @@ import (
 	"github.com/heartwilltell/hc"
 	"github.com/plainq/servekit"
 	"github.com/plainq/servekit/logkit"
-	"github.com/plainq/servekit/midkit"
 	"github.com/plainq/servekit/tern"
 	"golang.org/x/sync/errgroup"
 )
@@ -57,7 +56,7 @@ func WithTLS(cert, key string) Option[config] {
 
 // WithGlobalMiddlewares sets given middlewares as router-wide middlewares.
 // Means that they will be applied to each server endpoint.
-func WithGlobalMiddlewares(middlewares ...midkit.Middleware) Option[config] {
+func WithGlobalMiddlewares(middlewares ...Middleware) Option[config] {
 	return func(s *config) {
 		s.globalMiddlewares = append(s.globalMiddlewares, middlewares...)
 	}
@@ -255,7 +254,7 @@ func (l *ListenerHTTP) MountGroup(route string, fn func(r chi.Router)) {
 	l.router.Route(route, fn)
 }
 
-func (l *ListenerHTTP) Mount(route string, handler http.Handler, middlewares ...midkit.Middleware) {
+func (l *ListenerHTTP) Mount(route string, handler http.Handler, middlewares ...Middleware) {
 	l.router.Route(route, func(r chi.Router) {
 		r.Use(middlewares...)
 		r.Mount("/", handler)
@@ -372,7 +371,7 @@ type config struct {
 
 	// globalMiddlewares holds a set of router-wide HTTP middlewares,
 	// which are applied to each endpoint.
-	globalMiddlewares []midkit.Middleware
+	globalMiddlewares []Middleware
 
 	// health holds configuration of health endpoint.
 	health healthConfig
@@ -395,7 +394,7 @@ func applyOptionsHTTP(options ...Option[config]) config {
 			idleTimeout:       idleTimeout,
 		},
 
-		globalMiddlewares: []midkit.Middleware{},
+		globalMiddlewares: []Middleware{},
 
 		health: healthConfig{
 			healthChecker:             hc.NewNopChecker(),
@@ -461,11 +460,11 @@ func (l *ListenerHTTP) configureHealth(cfg config) error {
 
 		l.router.Route(cfg.health.route, func(health chi.Router) {
 			if cfg.health.accessLogsEnabled {
-				health.Use(midkit.LoggingMiddleware(l.logger))
+				health.Use(LoggingMiddleware(l.logger))
 			}
 
 			if cfg.health.metricsForEndpointEnabled {
-				health.Use(midkit.MetricsMiddleware())
+				health.Use(MetricsMiddleware())
 			}
 
 			health.Get("/", l.healthCheckHandler)
@@ -490,11 +489,11 @@ func (l *ListenerHTTP) configureMetrics(cfg config) error {
 
 		l.router.Route(cfg.metrics.route, func(metrics chi.Router) {
 			if cfg.metrics.accessLogsEnabled {
-				metrics.Use(midkit.LoggingMiddleware(l.logger))
+				metrics.Use(LoggingMiddleware(l.logger))
 			}
 
 			if cfg.metrics.metricsForEndpointEnabled {
-				metrics.Use(midkit.MetricsMiddleware())
+				metrics.Use(MetricsMiddleware())
 			}
 
 			metrics.Get("/", l.metricsHandler)
@@ -519,7 +518,7 @@ func (l *ListenerHTTP) configureProfiler(cfg config) error {
 
 		l.router.Route(cfg.profiler.route, func(profiler chi.Router) {
 			if cfg.profiler.accessLogsEnabled {
-				profiler.Use(midkit.LoggingMiddleware(l.logger))
+				profiler.Use(LoggingMiddleware(l.logger))
 			}
 
 			profiler.Mount("/", middleware.Profiler())
