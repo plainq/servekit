@@ -12,7 +12,6 @@ import (
 	"github.com/VictoriaMetrics/metrics"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 	"github.com/heartwilltell/hc"
 	"github.com/plainq/servekit"
 	"github.com/plainq/servekit/logkit"
@@ -36,9 +35,6 @@ const (
 
 	// shutdownTimeout represents server default shutdown timeout.
 	shutdownTimeout = 5 * time.Second
-
-	// corsMaxAge represents default max age for cors.
-	corsMaxAge = 300
 )
 
 // Option implements functional options pattern for the ListenerHTTP type.
@@ -47,7 +43,7 @@ const (
 //
 // See the applyOptionsHTTP function to understand the configuration behaviour.
 // Option functions should only be passed to ListenerHTTP constructor function NewListenerHTTP.
-type Option[T config | timeoutsConfig | healthConfig | metricsConfig | corsConfig | pprofConfig] func(o *T)
+type Option[T config | timeoutsConfig | healthConfig | metricsConfig | pprofConfig] func(o *T)
 
 // WithTLS sets the TLS certificate and key to be used by the HTTP server.
 // The certificate and key must be provided as strings containing the file paths.
@@ -64,24 +60,6 @@ func WithTLS(cert, key string) Option[config] {
 func WithGlobalMiddlewares(middlewares ...midkit.Middleware) Option[config] {
 	return func(s *config) {
 		s.globalMiddlewares = append(s.globalMiddlewares, middlewares...)
-	}
-}
-
-// WithCORS configures the CORS config for Houston API routes.
-func WithCORS(options ...Option[corsConfig]) Option[config] {
-	return func(s *config) {
-		s.cors.enable = true
-
-		for _, option := range options {
-			option(&s.cors)
-		}
-	}
-}
-
-// CorsAllowOrigins adds origins to a lost of allowed origins for cors configuration.
-func CorsAllowOrigins(origins ...string) Option[corsConfig] {
-	return func(o *corsConfig) {
-		o.allowedOrigins = append(o.allowedOrigins, origins...)
 	}
 }
 
@@ -255,10 +233,6 @@ func NewListenerHTTP(addr string, options ...Option[config]) (*ListenerHTTP, err
 		}
 	}
 
-	if err := l.configureCORS(cfg); err != nil {
-		return nil, fmt.Errorf("configure cors: %w", err)
-	}
-
 	// Use global middlewares.
 	l.router.Use(cfg.globalMiddlewares...)
 
@@ -400,9 +374,6 @@ type config struct {
 	// which are applied to each endpoint.
 	globalMiddlewares []midkit.Middleware
 
-	// cors holds config for cors.
-	cors corsConfig
-
 	// health holds configuration of health endpoint.
 	health healthConfig
 
@@ -425,22 +396,6 @@ func applyOptionsHTTP(options ...Option[config]) config {
 		},
 
 		globalMiddlewares: []midkit.Middleware{},
-
-		cors: corsConfig{
-			enable:           false,
-			allowCredentials: true,
-			allowedOrigins:   []string{"https://*", "http://*"},
-			allowedMethods: []string{
-				http.MethodGet,
-				http.MethodPut,
-				http.MethodHead,
-				http.MethodPost,
-				http.MethodDelete,
-				http.MethodOptions,
-			},
-			allowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-			maxAge:         corsMaxAge,
-		},
 
 		health: healthConfig{
 			healthChecker:             hc.NewNopChecker(),
@@ -574,24 +529,6 @@ func (l *ListenerHTTP) configureProfiler(cfg config) error {
 	return nil
 }
 
-func (*ListenerHTTP) configureCORS(cfg config) error {
-	if cfg.cors.enable {
-		if len(cfg.cors.allowedOrigins) == 0 {
-			return errors.New("cors misconfiguration: at least one origin should be specified")
-		}
-
-		cfg.globalMiddlewares = append(cfg.globalMiddlewares, cors.Handler(cors.Options{
-			AllowedOrigins:   cfg.cors.allowedOrigins,
-			AllowedMethods:   cfg.cors.allowedMethods,
-			AllowedHeaders:   cfg.cors.allowedHeaders,
-			AllowCredentials: cfg.cors.allowCredentials,
-			MaxAge:           int(cfg.cors.maxAge),
-		}))
-	}
-
-	return nil
-}
-
 // timeoutsConfig holds an HTTP server timeoutsConfig configuration.
 type timeoutsConfig struct {
 	// readTimeout represents the http.Server ReadTimeout.
@@ -629,14 +566,4 @@ type pprofConfig struct {
 	enable            bool
 	accessLogsEnabled bool
 	route             string
-}
-
-// corsConfig represents configuration for building cors middleware.
-type corsConfig struct {
-	enable           bool
-	allowCredentials bool
-	allowedOrigins   []string
-	allowedMethods   []string
-	allowedHeaders   []string
-	maxAge           uint32
 }
