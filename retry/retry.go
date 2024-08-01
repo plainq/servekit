@@ -167,6 +167,12 @@ type Options struct {
 	backoff    Backoff
 }
 
+// MaxRetries returns number a max retry attempts.
+func (o *Options) MaxRetries() uint { return o.maxRetries }
+
+// Backoff returns the current implementation of Backoff interface.
+func (o *Options) Backoff() Backoff { return o.backoff }
+
 // Option is a function type that modifies the Options struct.
 type Option func(*Options)
 
