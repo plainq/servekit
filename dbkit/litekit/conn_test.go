@@ -18,16 +18,19 @@ func TestConn_connString(t *testing.T) {
 			want:    "file:/path/to/db?mode=rwc&_journal=DELETE",
 			wantErr: nil,
 		},
+
 		"ReadWrite": {
 			conn:    Conn{path: "/path/to/db", accessMode: ReadWrite, journalingMode: Delete},
 			want:    "file:/path/to/db?mode=rw&_journal=DELETE",
 			wantErr: nil,
 		},
+
 		"ReadOnly": {
 			conn:    Conn{path: "/path/to/db", accessMode: ReadOnly, journalingMode: Delete},
 			want:    "file:/path/to/db?mode=ro&_journal=DELETE",
 			wantErr: nil,
 		},
+
 		"InMemory": {
 			conn:    Conn{path: "/path/to/db", accessMode: InMemory, journalingMode: Delete},
 			want:    "file:/path/to/db?mode=memory&_journal=DELETE",
