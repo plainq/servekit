@@ -152,7 +152,7 @@ func (c *Config) dialContext() func(ctx context.Context, network, address string
 	return c.defaultDialer.DialContext
 }
 
-func (c *Config) proxy() func(req *http.Request) (*url.URL, error) {
+func (*Config) proxy() func(req *http.Request) (*url.URL, error) {
 	return http.ProxyFromEnvironment
 }
 
@@ -415,7 +415,6 @@ func (t *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		if res.StatusCode >= http.StatusInternalServerError &&
 			res.StatusCode != http.StatusServiceUnavailable &&
 			res.StatusCode != http.StatusNotImplemented {
-
 			// Sleep before next retry attempt.
 			time.Sleep(t.backoff.Next(uint(i)))
 
