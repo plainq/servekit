@@ -50,8 +50,8 @@ func (c *Conn) Close() error {
 	return c.Disconnect(ctx)
 }
 
-// HealthCheck implements the health.Checker interface for MongoDB connection.
-func (c *Conn) HealthCheck(ctx context.Context) error {
+// Health implements the health.Checker interface for MongoDB connection.
+func (c *Conn) Health(ctx context.Context) error {
 	prefs, err := readpref.New(readpref.PrimaryPreferredMode)
 	if err != nil {
 		return fmt.Errorf("mongo: create read preference")
