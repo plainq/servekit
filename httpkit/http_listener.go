@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/heartwilltell/hc"
 	"github.com/plainq/servekit"
+	"github.com/plainq/servekit/ctxkit"
 	"github.com/plainq/servekit/logkit"
 	"github.com/plainq/servekit/tern"
 	"golang.org/x/sync/errgroup"
@@ -315,6 +316,8 @@ func (l *ListenerHTTP) healthCheckHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := l.health.Health(r.Context()); err != nil {
+		ctxkit.GetLogErrHook(r.Context())(err)
+
 		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
 		return
 	}
