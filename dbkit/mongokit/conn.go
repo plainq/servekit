@@ -18,9 +18,16 @@ func WithAppName(name string) Option {
 	return func(o *mongooptions.ClientOptions) { o.SetAppName(name) }
 }
 
-// WithDirect sets ability to make direct connection.
-func WithDirect(direct bool) Option {
+// WithDirectConnection sets ability to make direct connection.
+func WithDirectConnection(direct bool) Option {
 	return func(o *mongooptions.ClientOptions) { o.SetDirect(direct) }
+}
+
+// WithConnectTimeout specifies a timeout that is used for creating connections to the server. This can be set through
+// ApplyURI with the "connectTimeoutMS" (e.g "connectTimeoutMS=30") option. If set to 0, no timeout will be used. The
+// default is 30 seconds.
+func WithConnectTimeout(timeout time.Duration) Option {
+	return func(o *mongooptions.ClientOptions) { o.SetConnectTimeout(timeout) }
 }
 
 // Conn wraps the connection to the MongoDB.
@@ -45,6 +52,10 @@ func New(addr string, options ...Option) (*Conn, error) {
 		return nil, fmt.Errorf("mongo: connection failed: %w", err)
 	}
 
+	if err := client.Ping(ctx, readpref.Primary()); err != nil {
+		return nil, fmt.Errorf("mongo: ping failed: %w", err)
+	}
+
 	return &Conn{Client: client}, nil
 }
 
@@ -57,12 +68,7 @@ func (c *Conn) Close() error {
 
 // Health implements the health.Checker interface for MongoDB connection.
 func (c *Conn) Health(ctx context.Context) error {
-	prefs, err := readpref.New(readpref.PrimaryPreferredMode)
-	if err != nil {
-		return fmt.Errorf("mongo: create read preference")
-	}
-
-	if err := c.Client.Ping(ctx, prefs); err != nil {
+	if err := c.Client.Ping(ctx, readpref.Primary()); err != nil {
 		return fmt.Errorf("mongo: ping database: %w", err)
 	}
 
