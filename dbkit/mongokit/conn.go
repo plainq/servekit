@@ -18,6 +18,11 @@ func WithAppName(name string) Option {
 	return func(o *mongooptions.ClientOptions) { o.SetAppName(name) }
 }
 
+// WithDirect sets ability to make direct connection.
+func WithDirect(direct bool) Option {
+	return func(o *mongooptions.ClientOptions) { o.SetDirect(direct) }
+}
+
 // Conn wraps the connection to the MongoDB.
 type Conn struct{ *mongo.Client }
 
