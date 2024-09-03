@@ -52,6 +52,7 @@ type Options struct {
 	withColor  bool
 	withSource bool
 	withJSON   bool
+	withUTC    bool
 }
 
 // Option represents a function that modifies the configuration options for the logging library.
@@ -77,6 +78,9 @@ func WithColor() Option { return func(o *Options) { o.withColor = true } }
 
 // WithTimeFormat creates an Option that change the time formatting for log messages.
 func WithTimeFormat(format string) Option { return func(o *Options) { o.timeFormat = format } }
+
+// WithUTC creates an Option that change
+func WithUTC() Option { return func(o *Options) { o.withUTC = true } }
 
 // New returns a pointer to a new instance of slog.Logger.
 // Takes the variadic arguments of Option type to configure logger.

@@ -30,6 +30,12 @@ func WithConnectTimeout(timeout time.Duration) Option {
 	return func(o *mongooptions.ClientOptions) { o.SetConnectTimeout(timeout) }
 }
 
+// WithServerSelectionTimeout specifies how long the driver will wait to find an available,
+// suitable server to execute an operation.
+func WithServerSelectionTimeout(timeout time.Duration) Option {
+	return func(o *mongooptions.ClientOptions) { o.SetServerSelectionTimeout(timeout) }
+}
+
 // Conn wraps the connection to the MongoDB.
 type Conn struct{ *mongo.Client }
 

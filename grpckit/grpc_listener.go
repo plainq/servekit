@@ -24,11 +24,11 @@ const (
 //
 // See the applyOptionsGRPC function to understand the configuration behaviour.
 // Option functions should only be passed to ListenerGRPC constructor function NewListenerGRPC.
-type Option[T config] func(o *T)
+type Option[T ListenerConfig] func(o *T)
 
 // WithLogger sets the server logger.
-func WithLogger(logger *slog.Logger) Option[config] {
-	return func(s *config) {
+func WithLogger(logger *slog.Logger) Option[ListenerConfig] {
+	return func(s *ListenerConfig) {
 		if logger != nil {
 			s.logger = logger
 		}
@@ -36,19 +36,19 @@ func WithLogger(logger *slog.Logger) Option[config] {
 }
 
 // WithUnaryInterceptors is a function that takes a variable number of UnaryInterceptor functions
-// and returns an Option[config]. This function is used to add UnaryInterceptors to the
-// unaryInterceptors field of the config struct.
-func WithUnaryInterceptors(interceptors ...UnaryInterceptor) Option[config] {
-	return func(o *config) {
+// and returns an Option[ListenerConfig]. This function is used to add UnaryInterceptors to the
+// unaryInterceptors field of the ListenerConfig struct.
+func WithUnaryInterceptors(interceptors ...UnaryInterceptor) Option[ListenerConfig] {
+	return func(o *ListenerConfig) {
 		o.unaryInterceptors = append(o.unaryInterceptors, interceptors...)
 	}
 }
 
 // WithStreamInterceptors is a function that takes a variable number of StreamInterceptor functions
-// and returns an Option[config]. This function is used to add StreamInterceptors to the
-// streamInterceptors field of the config struct.
-func WithStreamInterceptors(interceptors ...StreamInterceptor) Option[config] {
-	return func(o *config) {
+// and returns an Option[ListenerConfig]. This function is used to add StreamInterceptors to the
+// streamInterceptors field of the ListenerConfig struct.
+func WithStreamInterceptors(interceptors ...StreamInterceptor) Option[ListenerConfig] {
+	return func(o *ListenerConfig) {
 		o.streamInterceptors = append(o.streamInterceptors, interceptors...)
 	}
 }
@@ -69,7 +69,7 @@ type ListenerGRPC struct {
 // NewListenerGRPC creates a new ListenerGRPC instance by creating a gRPC listener using a given address.
 // It applies all the options to a default `applyOptionsGRPC` instance and sets the server options with
 // the provided unary and stream interceptors. Finally, it returns the ListenerGRPC instance and potential error.
-func NewListenerGRPC(addr string, options ...Option[config]) (*ListenerGRPC, error) {
+func NewListenerGRPC(addr string, options ...Option[ListenerConfig]) (*ListenerGRPC, error) {
 	listener, grpcListenerErr := net.Listen("tcp", addr)
 	if grpcListenerErr != nil {
 		return nil, fmt.Errorf("create gRPC listener: %w", grpcListenerErr)
@@ -172,8 +172,8 @@ func (l *ListenerGRPC) handleShutdown(ctx context.Context) error {
 	return nil
 }
 
-func applyOptionsGRPC(options ...Option[config]) config {
-	cfg := config{
+func applyOptionsGRPC(options ...Option[ListenerConfig]) ListenerConfig {
+	cfg := ListenerConfig{
 		unaryInterceptors:  make([]UnaryInterceptor, 0),
 		streamInterceptors: make([]StreamInterceptor, 0),
 	}
@@ -185,8 +185,8 @@ func applyOptionsGRPC(options ...Option[config]) config {
 	return cfg
 }
 
-// config represents a struct that holds the configuration options for a gRPC server.
-type config struct {
+// ListenerConfig represents a struct that holds the configuration options for a gRPC server.
+type ListenerConfig struct {
 	logger             *slog.Logger
 	unaryInterceptors  []UnaryInterceptor
 	streamInterceptors []StreamInterceptor

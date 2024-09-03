@@ -71,8 +71,8 @@ type CustomDialer interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
 
-// Config holds configuration options which will be applied to http.Client.
-type Config struct {
+// ClientConfig holds configuration options which will be applied to http.Client.
+type ClientConfig struct {
 	// customDialer represents net.Dialer which is used to establish
 	// connection with remote network address.
 	// If customDialer is not nil it will be used instead of defaultDialer.
@@ -118,7 +118,7 @@ type Config struct {
 	readBufferSize int
 }
 
-func (c *Config) client() *http.Client {
+func (c *ClientConfig) client() *http.Client {
 	client := http.Client{
 		Transport: c.transport(),
 	}
@@ -126,7 +126,7 @@ func (c *Config) client() *http.Client {
 	return &client
 }
 
-func (c *Config) transport() *http.Transport {
+func (c *ClientConfig) transport() *http.Transport {
 	transport := http.Transport{
 		Proxy:                 c.proxy(),
 		DialContext:           c.dialContext(),
@@ -144,7 +144,7 @@ func (c *Config) transport() *http.Transport {
 	return &transport
 }
 
-func (c *Config) dialContext() func(ctx context.Context, network, address string) (net.Conn, error) {
+func (c *ClientConfig) dialContext() func(ctx context.Context, network, address string) (net.Conn, error) {
 	if c.customDialer != nil {
 		return c.customDialer.DialContext
 	}
@@ -152,21 +152,21 @@ func (c *Config) dialContext() func(ctx context.Context, network, address string
 	return c.defaultDialer.DialContext
 }
 
-func (*Config) proxy() func(req *http.Request) (*url.URL, error) {
+func (*ClientConfig) proxy() func(req *http.Request) (*url.URL, error) {
 	return http.ProxyFromEnvironment
 }
 
-// ClientOption represents functional options pattern for Config type.
-// ClientOption type represents a function which receive a pointer Config struct.
+// ClientOption represents functional options pattern for ClientConfig type.
+// ClientOption type represents a function which receive a pointer ClientConfig struct.
 // ClientOption functions can only be passed to NewClient function.
-// ClientOption function can change the default value of Config struct fields.
-type ClientOption func(config *Config)
+// ClientOption function can change the default value of ClientConfig struct fields.
+type ClientOption func(config *ClientConfig)
 
 // WithTLSHandshakeTimeout sets timeout for TLS handshake to
 // underlying http.Transport of http.Client, after which
 // connection will be terminated.
 func WithTLSHandshakeTimeout(timeout time.Duration) ClientOption {
-	option := func(config *Config) {
+	option := func(config *ClientConfig) {
 		config.tlsHandshakeTimeout = timeout
 	}
 
@@ -176,7 +176,7 @@ func WithTLSHandshakeTimeout(timeout time.Duration) ClientOption {
 // WithCustomDialer sets given dialer as custom net.Dialer
 // underlying http.Transport of http.Client.
 func WithCustomDialer(dialer CustomDialer) ClientOption {
-	option := func(config *Config) {
+	option := func(config *ClientConfig) {
 		config.customDialer = dialer
 	}
 
@@ -186,7 +186,7 @@ func WithCustomDialer(dialer CustomDialer) ClientOption {
 // WithDialTimeout sets the Dial timeout to
 // underlying http.Transport of http.Client.
 func WithDialTimeout(timeout time.Duration) ClientOption {
-	option := func(config *Config) {
+	option := func(config *ClientConfig) {
 		config.defaultDialer.Timeout = timeout
 	}
 
@@ -195,7 +195,7 @@ func WithDialTimeout(timeout time.Duration) ClientOption {
 
 // WithKeepAliveDisabled sets the
 func WithKeepAliveDisabled(disabled bool) ClientOption {
-	option := func(config *Config) {
+	option := func(config *ClientConfig) {
 		config.disableKeepAlives = disabled
 	}
 
@@ -205,7 +205,7 @@ func WithKeepAliveDisabled(disabled bool) ClientOption {
 // WithKeepAliveTimeout sets the KeepAlive timeout to
 // underlying http.Transport of http.Client.
 func WithKeepAliveTimeout(timeout time.Duration) ClientOption {
-	option := func(config *Config) {
+	option := func(config *ClientConfig) {
 		config.defaultDialer.KeepAlive = timeout
 	}
 
@@ -215,7 +215,7 @@ func WithKeepAliveTimeout(timeout time.Duration) ClientOption {
 // WithMaxIdleConns sets the MaxIdleConns value to
 // underlying http.Transport of http.Client.
 func WithMaxIdleConns(max int) ClientOption {
-	option := func(config *Config) {
+	option := func(config *ClientConfig) {
 		config.maxIdleConns = max
 	}
 
@@ -225,7 +225,7 @@ func WithMaxIdleConns(max int) ClientOption {
 // WithMaxIdleConnsPerHost sets the MaxIdleConnsPerHost value to
 // underlying http.Transport of http.Client.
 func WithMaxIdleConnsPerHost(max int) ClientOption {
-	option := func(config *Config) {
+	option := func(config *ClientConfig) {
 		config.maxIdleConnsPerHost = max
 	}
 
@@ -235,7 +235,7 @@ func WithMaxIdleConnsPerHost(max int) ClientOption {
 // WithResponseHeaderTimeout sets the ResponseHeaderTimeout value to
 // underlying http.Transport of http.Client.
 func WithResponseHeaderTimeout(timeout time.Duration) ClientOption {
-	return func(config *Config) {
+	return func(config *ClientConfig) {
 		config.responseHeaderTimeout = timeout
 	}
 }
@@ -243,7 +243,7 @@ func WithResponseHeaderTimeout(timeout time.Duration) ClientOption {
 // WithWriteBufferSize sets the WriteBufferSize value to
 // underlying http.Transport of http.Client.
 func WithWriteBufferSize(size int) ClientOption {
-	return func(config *Config) {
+	return func(config *ClientConfig) {
 		config.writeBufferSize = size
 	}
 }
@@ -251,7 +251,7 @@ func WithWriteBufferSize(size int) ClientOption {
 // WithReadBufferSize sets the ReadBufferSize value to
 // underlying http.Transport of http.Client.
 func WithReadBufferSize(size int) ClientOption {
-	option := func(config *Config) {
+	option := func(config *ClientConfig) {
 		config.readBufferSize = size
 	}
 
@@ -267,7 +267,7 @@ func WithRetries(options ...retry.Option) ClientOption {
 		option(&retryCfg)
 	}
 
-	option := func(config *Config) {
+	option := func(config *ClientConfig) {
 		config.retryBackoff = retryCfg.Backoff()
 		config.retryMaxAttempts = retryCfg.MaxRetries()
 	}
@@ -278,7 +278,7 @@ func WithRetries(options ...retry.Option) ClientOption {
 // NewClient takes options to configure and return
 // a pointer to a new instance of http.Client.
 func NewClient(options ...ClientOption) *http.Client {
-	var cfg = Config{
+	var cfg = ClientConfig{
 		// customDialer if not nil will be used instead of defaultDialer.
 		customDialer: nil,
 
