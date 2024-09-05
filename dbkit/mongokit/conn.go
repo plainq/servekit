@@ -36,6 +36,7 @@ type Conn struct{ *mongo.Client }
 // New returns a pointer to a new instance of Conn struct.
 // Receives variadic Option to configure the MongoDB connection settings.
 func New(addr string, options ...Option) (*Conn, error) {
+	ctx := context.Background()
 	connOptions := mongooptions.Client()
 
 	for _, option := range options {
@@ -43,9 +44,6 @@ func New(addr string, options ...Option) (*Conn, error) {
 	}
 
 	connOptions.ApplyURI(addr)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 
 	client, err := mongo.Connect(ctx, connOptions)
 	if err != nil {
