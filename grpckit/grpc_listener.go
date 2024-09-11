@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/plainq/servekit"
+	"github.com/plainq/servekit/logkit"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -174,6 +175,7 @@ func (l *ListenerGRPC) handleShutdown(ctx context.Context) error {
 
 func applyOptionsGRPC(options ...Option[ListenerConfig]) ListenerConfig {
 	cfg := ListenerConfig{
+		logger:             logkit.New(logkit.WithLevel(slog.LevelInfo)),
 		unaryInterceptors:  make([]UnaryInterceptor, 0),
 		streamInterceptors: make([]StreamInterceptor, 0),
 	}
