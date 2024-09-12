@@ -57,6 +57,16 @@ func ValidateXID(id string) error {
 	return nil
 }
 
+// ParseXID returns XID identifier as object.
+func ParseXID(id string) (xid.ID, error) {
+	xID, err := xid.FromString(id)
+	if err != nil {
+		return [12]byte{}, ErrInvalidID
+	}
+
+	return xID, nil
+}
+
 // DigiCode returns 6-digit code as a string.
 func DigiCode() string {
 	var (
