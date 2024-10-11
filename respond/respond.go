@@ -130,11 +130,17 @@ func Status(w http.ResponseWriter, _ *http.Request, statusCode int, options ...O
 
 // ErrorHTTP tries to map err to errkit.Error and based on result
 // writes standard HTTP error with status statusCode to the response writer.
-func ErrorHTTP(w http.ResponseWriter, r *http.Request, err error) {
+func ErrorHTTP(w http.ResponseWriter, r *http.Request, err error, options ...Option) {
+	o := Options(w, options...)
+
 	// Get log hook from the context to set an error which
 	// will be logged along with access log line.
 	if hook := ctxkit.GetLogErrHook(r.Context()); hook != nil {
 		hook(err)
+	}
+
+	if o.reportError {
+		errkit.Report(err)
 	}
 
 	// Call the default error responder.
@@ -143,11 +149,17 @@ func ErrorHTTP(w http.ResponseWriter, r *http.Request, err error) {
 
 // ErrorGRPC tries to map err to errkit.Error and based on result
 // writes standard gRPC error with status statusCode to the response writer.
-func ErrorGRPC[T any](ctx context.Context, err error) (T, error) {
+func ErrorGRPC[T any](ctx context.Context, err error, options ...Option) (T, error) {
+	o := Options(nil, options...)
+
 	// Get log hook from the context to set an error which
 	// will be logged along with access log line.
 	if hook := ctxkit.GetLogErrHook(ctx); hook != nil {
 		hook(err)
+	}
+
+	if o.reportError {
+		errkit.Report(err)
 	}
 
 	// Call the default error responder.
@@ -255,15 +267,17 @@ func TEXT(w http.ResponseWriter, r *http.Request, v []byte, options ...Option) {
 
 // ResponseOptions represents the options for an HTTP response.
 type ResponseOptions struct {
-	statusCode int
-	headers    http.Header
+	statusCode  int
+	headers     http.Header
+	reportError bool
 }
 
 // Options returns a pointer to a new ResponseOptions object with default values and applies the given options to it.
 func Options(w http.ResponseWriter, options ...Option) *ResponseOptions {
 	r := ResponseOptions{
-		statusCode: http.StatusOK,
-		headers:    make(http.Header),
+		statusCode:  http.StatusOK,
+		headers:     make(http.Header),
+		reportError: false,
 	}
 
 	for _, option := range options {
@@ -287,6 +301,12 @@ func WithStatus(code int) Option {
 // The headers are used to modify the headers of an HTTP response.
 func WithHeader(key, value string) Option {
 	return func(o *ResponseOptions) { o.headers.Add(key, value) }
+}
+
+// WithErrorReport is an Option function that will enable error reporting by the
+// errkit.ErrorReporter. Used in
+func WithErrorReport() Option {
+	return func(o *ResponseOptions) { o.reportError = true }
 }
 
 func (o *ResponseOptions) setHeadersToResponse(w http.ResponseWriter) {
