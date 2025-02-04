@@ -29,6 +29,21 @@ const (
 
 	// ErrConnFailed shows that connection to a resource failed.
 	ErrConnFailed Error = "connection failed"
+
+	// ErrPasswordIncorrect indicates that the password is incorrect.
+	ErrPasswordIncorrect Error = "password incorrect"
+
+	// ErrTokenInvalid error means that given token is invalid or malformed.
+	ErrTokenInvalid Error = "invalid token"
+
+	// ErrTokenExpired error means that given token is already expired.
+	ErrTokenExpired Error = "expired token"
+
+	// ErrTokenNotBefore error means that given token is not valid yet.
+	ErrTokenNotBefore Error = "token is not valid yet"
+
+	// ErrTokenIssuedAt error means that given token is not valid at the current time.
+	ErrTokenIssuedAt Error = "token is not valid at the current time"
 )
 
 // Error type represents package level errors.

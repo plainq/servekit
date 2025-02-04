@@ -92,29 +92,38 @@ type Config struct {
 	// TCP keep-alives.
 	disableKeepAlives bool
 
-	// tlsHandshakeTimeout
+	// tlsHandshakeTimeout controls the maximum amount of time to wait for a
+	// TLS handshake to complete.
 	tlsHandshakeTimeout time.Duration
 
 	// maxIdleConns controls the maximum number of idle (keep-alive)
 	// connections across all hosts. Zero means no limit.
 	maxIdleConns int
 
-	// maxIdleConnsPerHost controls
+	// maxIdleConnsPerHost controls the maximum number of idle (keep-alive)
+	// connections to keep per-host. Zero means no limit.
 	maxIdleConnsPerHost int
 
-	// idleConnTimeout
+	// idleConnTimeout controls the maximum amount of time an idle
+	// (keep-alive) connection will remain idle before closing
+	// itself.
 	idleConnTimeout time.Duration
 
-	// expectContinueTimeout
+	// expectContinueTimeout controls the amount of time to wait for a server's
+	// first response headers after fully writing the request headers if the
+	// request has an Expect header.
 	expectContinueTimeout time.Duration
 
-	// responseHeaderTimeout
+	// responseHeaderTimeout controls the amount of time to wait for a server's
+	// response headers after fully writing the request headers.
 	responseHeaderTimeout time.Duration
 
-	// writeBufferSize
+	// writeBufferSize controls the size of the write buffer for the underlying
+	// http.Transport.
 	writeBufferSize int
 
-	// readBufferSize
+	// readBufferSize controls the size of the read buffer for the underlying
+	// http.Transport.
 	readBufferSize int
 }
 
@@ -193,7 +202,8 @@ func WithDialTimeout(timeout time.Duration) ClientOption {
 	return option
 }
 
-// WithKeepAliveDisabled sets the
+// WithKeepAliveDisabled sets the DisableKeepAlives value to
+// underlying http.Transport of http.Client.
 func WithKeepAliveDisabled(disabled bool) ClientOption {
 	option := func(config *Config) {
 		config.disableKeepAlives = disabled
@@ -214,9 +224,9 @@ func WithKeepAliveTimeout(timeout time.Duration) ClientOption {
 
 // WithMaxIdleConns sets the MaxIdleConns value to
 // underlying http.Transport of http.Client.
-func WithMaxIdleConns(max int) ClientOption {
+func WithMaxIdleConns(maxn int) ClientOption {
 	option := func(config *Config) {
-		config.maxIdleConns = max
+		config.maxIdleConns = maxn
 	}
 
 	return option
@@ -224,9 +234,9 @@ func WithMaxIdleConns(max int) ClientOption {
 
 // WithMaxIdleConnsPerHost sets the MaxIdleConnsPerHost value to
 // underlying http.Transport of http.Client.
-func WithMaxIdleConnsPerHost(max int) ClientOption {
+func WithMaxIdleConnsPerHost(maxn int) ClientOption {
 	option := func(config *Config) {
-		config.maxIdleConnsPerHost = max
+		config.maxIdleConnsPerHost = maxn
 	}
 
 	return option
