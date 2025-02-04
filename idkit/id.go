@@ -70,7 +70,7 @@ func DigiCode() string {
 		rng fastrand.RNG
 	)
 
-	rng.Seed(uint32(time.Now().UnixNano()))
+	rng.Seed(uint32(time.Now().UnixNano())) //nolint:gosec // UnixNano will never be negative.
 
 	for i := 0; i < digiCodeLen; i++ {
 		b.WriteString(strconv.Itoa(int(fastrand.Uint32n(digiCodeMaxN))))

@@ -16,7 +16,7 @@ import (
 	"github.com/benbjohnson/litestream/file"
 	"github.com/benbjohnson/litestream/s3"
 	"github.com/heartwilltell/hc"
-	_ "github.com/mattn/go-sqlite3" //nolint // driver.
+	_ "github.com/mattn/go-sqlite3" // sqlite3 driver is required by the litestream.
 	"github.com/plainq/servekit/logkit"
 )
 

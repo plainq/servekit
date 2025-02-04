@@ -332,9 +332,10 @@ type roundTripper struct {
 	client      *http.Client
 }
 
+//nolint:revive // cyclomatic is acceptable here.
 func (t *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	var (
-		attempts   = int(t.maxAttempts)
+		attempts   = t.maxAttempts
 		bodyReader io.ReadSeeker
 	)
 
@@ -353,7 +354,7 @@ func (t *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	var res *http.Response
 
-	for i := 0; i <= attempts; i++ {
+	for i := uint(0); i <= attempts; i++ {
 		if res != nil {
 			// In case of retry when the previous response is not nil we try to drain
 			// the response body to utilize the HTTP connection.
@@ -398,8 +399,7 @@ func (t *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 				}
 			}
 
-			time.Sleep(t.backoff.Next(uint(i)))
-
+			time.Sleep(t.backoff.Next(i))
 			continue
 		}
 
@@ -418,16 +418,16 @@ func (t *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 				}
 			}
 
-			time.Sleep(t.backoff.Next(uint(i)))
+			time.Sleep(t.backoff.Next(i))
 			continue
 		}
 
 		if res.StatusCode >= http.StatusInternalServerError &&
 			res.StatusCode != http.StatusServiceUnavailable &&
 			res.StatusCode != http.StatusNotImplemented {
-			// Sleep before next retry attempt.
-			time.Sleep(t.backoff.Next(uint(i)))
 
+			// Sleep before next retry.
+			time.Sleep(t.backoff.Next(i))
 			continue
 		}
 	}
