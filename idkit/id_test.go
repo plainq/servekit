@@ -1,9 +1,12 @@
 package idkit
 
 import (
+	"errors"
 	"testing"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/plainq/servekit/errkit"
 )
 
 func TestULID(t *testing.T) {
@@ -25,7 +28,7 @@ func TestValidateULID(t *testing.T) {
 
 	t.Run("Error", func(t *testing.T) {
 		id := "invalid id"
-		if err := ValidateULID(id); err == nil || err != ErrInvalidID {
+		if err := ValidateULID(id); err == nil || !errors.Is(err, errkit.ErrInvalidID) {
 			t.Errorf("ULID should not be valid. Expected ErrInvalidID")
 		}
 	})
@@ -56,14 +59,14 @@ func TestValidateDigiCode(t *testing.T) {
 
 	t.Run("Error len", func(t *testing.T) {
 		id := "65789"
-		if err := ValidateDigiCode(id); err == nil || err != ErrInvalidID {
+		if err := ValidateDigiCode(id); err == nil || !errors.Is(err, errkit.ErrInvalidID) {
 			t.Errorf("digicode should not be valid. Expected ErrInvalidID")
 		}
 	})
 
 	t.Run("Error invalid char", func(t *testing.T) {
 		id := "65789C"
-		if err := ValidateDigiCode(id); err == nil || err != ErrInvalidID {
+		if err := ValidateDigiCode(id); err == nil || !errors.Is(err, errkit.ErrInvalidID) {
 			t.Errorf("digicode should not be valid. Expected ErrInvalidID")
 		}
 	})

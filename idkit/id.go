@@ -11,16 +11,12 @@ import (
 	"unicode/utf8"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/plainq/servekit/errkit"
 	"github.com/rs/xid"
 	"github.com/valyala/fastrand"
 )
 
-var _ error = Error("") //nolint: errcheck // OK here.
-
 const (
-	// ErrInvalidID represents an error which indicates that given TID is invalid.
-	ErrInvalidID Error = "id: invalid identifier"
-
 	digiCodeMaxN = 9
 	digiCodeLen  = 6
 )
@@ -39,7 +35,7 @@ func ULID() string {
 // of ULID identifier.
 func ValidateULID(id string) error {
 	if _, err := ulid.Parse(id); err != nil {
-		return ErrInvalidID
+		return errkit.ErrInvalidID
 	}
 
 	return nil
@@ -51,7 +47,7 @@ func XID() string { return strings.ToUpper(xid.New().String()) }
 // ValidateXID validates string representation of XID identifier.
 func ValidateXID(id string) error {
 	if _, err := xid.FromString(id); err != nil {
-		return ErrInvalidID
+		return errkit.ErrInvalidID
 	}
 
 	return nil
@@ -61,7 +57,7 @@ func ValidateXID(id string) error {
 func ParseXID(id string) (xid.ID, error) {
 	xID, err := xid.FromString(id)
 	if err != nil {
-		return xid.ID{}, ErrInvalidID
+		return xid.ID{}, errkit.ErrInvalidID
 	}
 
 	return xID, nil
@@ -86,19 +82,14 @@ func DigiCode() string {
 // ValidateDigiCode validates code from DigiCode.
 func ValidateDigiCode(code string) error {
 	if len(code) != digiCodeLen || utf8.RuneCountInString(code) != digiCodeLen {
-		return ErrInvalidID
+		return errkit.ErrInvalidID
 	}
 
 	for _, r := range code {
 		if !unicode.IsNumber(r) {
-			return ErrInvalidID
+			return errkit.ErrInvalidID
 		}
 	}
 
 	return nil
 }
-
-// Error represents package level error.
-type Error string
-
-func (e Error) Error() string { return string(e) }

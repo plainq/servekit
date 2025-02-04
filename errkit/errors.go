@@ -44,6 +44,9 @@ const (
 
 	// ErrTokenIssuedAt error means that given token is not valid at the current time.
 	ErrTokenIssuedAt Error = "token is not valid at the current time"
+
+	// ErrInvalidID represents an error which indicates that given TID is invalid.
+	ErrInvalidID Error = "invalid identifier"
 )
 
 // Error type represents package level errors.
