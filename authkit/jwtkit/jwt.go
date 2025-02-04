@@ -29,6 +29,12 @@ type Token struct {
 	raw *jwt.Token
 }
 
+// Raw returns the raw token.
+func (t *Token) Raw() *jwt.Token { return t.raw }
+
+// Metadata returns the metadata of the token.
+func (t *Token) Metadata() map[string]any { return t.Meta }
+
 // NewTokenManager creates a new implementation of TokenManager based on JWT.
 // It uses the given signer and verifier to sign and verify the token.
 func NewTokenManager(signer jwt.Signer, verifier jwt.Verifier) *TokenManagerJWT {
