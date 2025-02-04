@@ -29,7 +29,7 @@ const (
 // More about ULID: https://github.com/ulid/spec
 func ULID() string {
 	t := time.Now().UTC()
-	e := ulid.Monotonic(rand.New(rand.NewSource(t.UnixNano())), 0) //nolint:gosec
+	e := ulid.Monotonic(rand.New(rand.NewSource(t.UnixNano())), 0)
 	id := ulid.MustNew(ulid.Timestamp(t), e)
 
 	return id.String()
@@ -61,7 +61,7 @@ func ValidateXID(id string) error {
 func ParseXID(id string) (xid.ID, error) {
 	xID, err := xid.FromString(id)
 	if err != nil {
-		return [12]byte{}, ErrInvalidID
+		return xid.ID{}, ErrInvalidID
 	}
 
 	return xID, nil

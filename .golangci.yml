@@ -11,7 +11,7 @@ linters:
     - dogsled # Checks assignments with too many blank identifiers (e.g. x, _, _, _, := f()).
     - errcheck # Checks for unchecked errors in go programs.
     - errorlint # Finds code that will cause problems with the error wrapping scheme introduced in Go 1.13.
-    - exportloopref # Checks for pointers to enclosing loop variables.
+    - copyloopvar # Checks for loop variables that are copied in the loop body.
     - gosimple # Linter for Go source code that specializes in simplifying code.
     - gosec # Inspects source code for security problems.
     - govet # Vet examines Go source code and reports suspicious constructs, such as Printf calls whose arguments do not align with the format string.
@@ -117,6 +117,10 @@ linters-settings:
         # Whether to check exported functions.
         # Default: false
         checkExported: false
+
+  gosec:
+    excludes:
+      - "G404" # Use of weak random number generator (math/rand instead of crypto/rand)
 
   revive:
     # Maximum number of open files at the same time.
@@ -422,8 +426,8 @@ linters-settings:
         disabled: false
 
       # Warns when importing black-listed packages.
-      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#imports-blacklist
-      - name: imports-blacklist
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#imports-blocklist
+      - name: imports-blocklist
         severity: warning
         disabled: false
         arguments:
