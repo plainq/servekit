@@ -193,7 +193,7 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, options ...Opti
 		option(&o)
 	}
 
-	for i := 0; uint(i) < o.maxRetries; i++ {
+	for i := uint(0); i < o.maxRetries; i++ {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -206,7 +206,7 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, options ...Opti
 					return err
 				}
 
-				backoff := o.backoff.Next(uint(i))
+				backoff := o.backoff.Next(i)
 				timer := time.NewTimer(backoff)
 
 				select {

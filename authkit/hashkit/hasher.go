@@ -34,11 +34,11 @@ type Option func(hasher *BCryptHasher)
 // then min or max cost wil be set.
 func WithCost(cost int) Option {
 	var finalCost int
-	
+
 	if cost < bcrypt.MinCost {
 		finalCost = bcrypt.MinCost
 	}
-	
+
 	if cost > bcrypt.MaxCost {
 		finalCost = bcrypt.MaxCost
 	}
@@ -50,9 +50,9 @@ func WithCost(cost int) Option {
 
 // BCryptHasher implements Hasher interface.
 // Hashes passwords using bcrypt algorithm.
-type BCryptHasher struct { cost int }
+type BCryptHasher struct{ cost int }
 
-func (h *BCryptHasher) CheckPassword(hash, pass string) error {
+func (*BCryptHasher) CheckPassword(hash, pass string) error {
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(pass)); err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			return errkit.ErrPasswordIncorrect

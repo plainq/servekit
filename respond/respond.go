@@ -215,7 +215,7 @@ func HTML(w http.ResponseWriter, r *http.Request, v []byte, options ...Option) {
 // response with the specified status code. If the template execution fails, an
 // error will be logged and a 500 Internal Server Error response will be sent.
 // Additional options can be passed to modify the response using the Option functions.
-func TemplateHTML(w http.ResponseWriter, r *http.Request, name string, v any, options ...Option) {
+func TemplateHTML(w http.ResponseWriter, r *http.Request, name string, v any, options ...Option) { //nolint:revive // argument-limit is acceptable here.
 	o := Options(w, options...)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -304,7 +304,7 @@ func WithHeader(key, value string) Option {
 }
 
 // WithErrorReport is an Option function that will enable error reporting by the
-// errkit.ErrorReporter. Used in
+// errkit.ErrorReporter. Used in the default implementation of HTTPErrorResponder.
 func WithErrorReport() Option {
 	return func(o *ResponseOptions) { o.reportError = true }
 }

@@ -153,7 +153,7 @@ func (e *Evolver) MutateSchema() (eErr error) {
 	// Range over mutation to apply each one.
 	for _, m := range mutations {
 		// Skip already applied mutations.
-		if int(m.version) <= schemaVersionInfo.Version {
+		if schemaVersionInfo.Version < 0 || m.version <= uint(schemaVersionInfo.Version) {
 			continue
 		}
 
