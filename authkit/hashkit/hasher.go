@@ -33,18 +33,18 @@ type Option func(hasher *BCryptHasher)
 // If provided cost exceed out of acceptable boundary
 // then min or max cost wil be set.
 func WithCost(cost int) Option {
-	var finalCost int
+	c := cost
 
-	if cost < bcrypt.MinCost {
-		finalCost = bcrypt.MinCost
+	if c < bcrypt.MinCost {
+		c = bcrypt.MinCost
 	}
 
-	if cost > bcrypt.MaxCost {
-		finalCost = bcrypt.MaxCost
+	if c > bcrypt.MaxCost {
+		c = bcrypt.MaxCost
 	}
 
 	return func(h *BCryptHasher) {
-		h.cost = finalCost
+		h.cost = c
 	}
 }
 

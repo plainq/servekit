@@ -217,7 +217,7 @@ func (e *Evolver) loadMutations() ([]Mutation, error) {
 			}
 
 			evolutions = append(evolutions, Mutation{
-				version: uint(i + 1),
+				version: uint(i + 1), //nolint:gosec // i is always positive
 				changes: changes,
 			})
 		}
