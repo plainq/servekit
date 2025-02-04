@@ -47,6 +47,9 @@ const (
 
 	// ErrInvalidID represents an error which indicates that given TID is invalid.
 	ErrInvalidID Error = "invalid identifier"
+
+	// ErrValidation indicates that the data is not valid.
+	ErrValidation Error = "validation failed"
 )
 
 // Error type represents package level errors.
