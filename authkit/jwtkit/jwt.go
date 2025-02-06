@@ -21,9 +21,13 @@ type TokenManager interface {
 	ParseVerify(token string) (*Token, error)
 }
 
-// Token is a struct that holds the token and its claims.
+// Claims represents claims for JWT.
+// See: https://tools.ietf.org/html/rfc7519#section-4.1
+type Claims = jwt.RegisteredClaims
+
+// Token represents claims for JWT with additional metadata.
 type Token struct {
-	jwt.RegisteredClaims
+	Claims
 	Meta map[string]any `json:"meta,omitempty"`
 
 	raw *jwt.Token
