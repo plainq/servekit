@@ -2,7 +2,7 @@
 
 Is a set of well-tested (or not well 🤭) reusable components to speedup day-to-day development of HTTP and gRPC APIs.
 
-⚠️👷‍♂️🚧 Under construction! There could be a breaking changes until v1.0.0
+**⚠️ Under Construction:** There could be breaking changes until v1.0.0.
 
 ## Docs
 
