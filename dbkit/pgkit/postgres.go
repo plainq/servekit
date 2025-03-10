@@ -39,11 +39,13 @@ func New(connstr string) (*Conn, error) {
 	return &Conn{Pool: pgConn}, nil
 }
 
+// Close closes the connection to the Postgres database.
 func (c *Conn) Close() error {
 	c.Pool.Close()
 	return nil
 }
 
+// Health checks if the connection is healthy.
 func (c *Conn) Health(ctx context.Context) error {
 	if err := c.Ping(ctx); err != nil {
 		return fmt.Errorf("postgres: healthcheck failed: %w", err)
