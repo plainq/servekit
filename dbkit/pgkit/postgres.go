@@ -52,6 +52,9 @@ func (c *Conn) Health(ctx context.Context) error {
 	return nil
 }
 
+// PgError checks if the error is a Postgres error and returns true if it is.
+// If it is, it returns the error wrapped with the appropriate error from errkit package.
+// Otherwise, it returns false and the original error.
 func PgError(err error) (bool, error) {
 	var pgErr *pgconn.PgError
 
