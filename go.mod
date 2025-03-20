@@ -19,7 +19,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/maxatome/go-testdeep v1.14.0
 	github.com/oklog/ulid/v2 v2.1.0
-	github.com/redis/go-redis/v9 v9.7.1
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/resend/resend-go/v2 v2.15.0
 	github.com/rs/xid v1.6.0
 	github.com/valyala/fastrand v1.1.0
