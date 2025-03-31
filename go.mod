@@ -13,7 +13,7 @@ require (
 	github.com/go-chi/cors v1.2.1
 	github.com/heartwilltell/hc v0.1.5
 	github.com/jackc/pgconn v1.14.3
-	github.com/jackc/pgx/v5 v5.7.2
+	github.com/jackc/pgx/v5 v5.7.4
 	github.com/jackc/tern/v2 v2.3.2
 	github.com/lmittmann/tint v1.0.7
 	github.com/mattn/go-sqlite3 v1.14.24
