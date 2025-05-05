@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Check Status</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        /* Custom styles for transitions if needed, though Tailwind handles most */
+        .transition-colors { transition-property: background-color, border-color, color; transition-duration: 500ms; }
+
+        /* Hide the default arrow marker for <summary> */
+        summary::-webkit-details-marker {
+            display: none;
+        }
+        summary {
+            list-style: none; /* For Firefox and potentially other browsers */
+            display: block; /* Ensure it takes block layout */
+        }
+        /* Optional: Add a custom indicator if needed, e.g., using ::before or ::after */
+    </style>
+</head>
+{{/* Determine overall status based on Error or Report.Services */}}
+{{$overallStatus := "OK"}}
+{{$statusBgColor := "bg-green-50"}}
+{{$statusBorderColor := "border-green-500"}}
+{{$statusHeaderBgColor := "bg-green-500"}}
+{{$statusInfoBgColor := "bg-green-100"}}
+{{$statusTextColor := "text-green-800"}}
+{{$statusText := "All services are running properly. The system is healthy and responding as expected."}}
+
+{{/* Default to OK, check for errors */}}
+{{$anyServiceError := false}}
+{{if .Report}}
+    {{/* Call GetStatuses method and check the map */}}
+    {{$statuses := .Report.GetStatuses}}
+    {{if $statuses}}
+        {{range $name, $status := $statuses}}
+            {{/* Check if the Error field in ServiceStatus is non-nil */}}
+            {{if $status.Error}}
+                {{$anyServiceError = true}}
+            {{end}}
+        {{end}}
+    {{end}}
+{{end}}
+
+{{if .Error}}
+    {{/* If there's a general error rendering the report */}}
+    {{$overallStatus = "ERROR"}}
+    {{$statusBgColor = "bg-red-50"}}
+    {{$statusBorderColor = "border-red-500"}}
+    {{$statusHeaderBgColor = "bg-red-500"}}
+    {{$statusInfoBgColor = "bg-red-100"}}
+    {{$statusTextColor = "text-red-800"}}
+    {{$statusText = printf "Failed to generate health report: %s" .Error.Error}}
+{{else if $anyServiceError}}
+    {{/* If any service reported an error */}}
+    {{$overallStatus = "ERROR"}}
+    {{$statusBgColor = "bg-red-50"}}
+    {{$statusBorderColor = "border-red-500"}}
+    {{$statusHeaderBgColor = "bg-red-500"}}
+    {{$statusInfoBgColor = "bg-red-100"}}
+    {{$statusTextColor = "text-red-800"}}
+    {{$statusText = "System issues detected. Some services are not responding properly."}}
+{{end}}
+
+<body class="{{$statusBgColor}} min-h-screen flex items-center justify-center transition-colors">
+    <div class="w-full max-w-2xl mx-auto bg-white rounded-xl overflow-hidden border-4 {{$statusBorderColor}} transition-colors">
+        <div class="{{$statusHeaderBgColor}} px-6 py-4 transition-colors">
+            <div class="flex items-center">
+                <div class="rounded-full w-4 h-4 {{if eq $overallStatus "OK"}}bg-white{{else}}bg-white{{end}} mr-2"></div> {{/* Indicator color logic can be more nuanced if needed */}}
+                <h1 class="text-xl font-bold text-white">System Status: {{$overallStatus}}</h1>
+            </div>
+        </div>
+        <div class="px-6 py-4">
+            <div class="mb-4 p-3 {{$statusInfoBgColor}} rounded-lg transition-colors">
+                <p class="{{$statusTextColor}} transition-colors">
+                    {{$statusText}}
+                </p>
+            </div>
+
+            {{if .Report}}
+                {{/* Call GetStatuses method and check the map */}}
+                {{$statuses := .Report.GetStatuses}}
+                {{if $statuses}}
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-700 mb-3">Services</h2>
+                        <ul class="space-y-2">
+                            {{/* Range over the map returned by GetStatuses */}}
+                            {{range $name, $status := $statuses}}
+                                {{$serviceStatusColor := "bg-green-500"}} {{/* Default OK */}}
+                                {{$serviceBgColor := "bg-green-100"}}
+                                {{/* Check if the Error field is non-nil */}}
+                                {{if $status.Error}}
+                                    {{$serviceStatusColor = "bg-red-500"}}
+                                    {{$serviceBgColor = "bg-red-100"}}
+                                {{end}}
+                                <li class="p-3 rounded-md {{$serviceBgColor}} transition-colors duration-300">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <div class="flex items-center">
+                                            <span class="w-3 h-3 rounded-full {{$serviceStatusColor}} mr-3 flex-shrink-0"></span>
+                                            <span class="font-medium text-gray-800 align-middle">{{if $name}}{{$name}}{{else}}Unnamed Service{{end}}</span>
+                                        </div>
+                                        {{/* Display CheckedAt and Duration */}}
+                                        <div class="text-xs text-gray-500">
+                                            {{if not $status.CheckedAt.IsZero}}
+                                                <span>Checked: {{$status.CheckedAt.Format "15:04:05 MST"}}</span>
+                                            {{else}}
+                                                <span>Checked: N/A</span>
+                                            {{end}}
+                                            {{/* Display Duration if available (non-zero) */}}
+                                            {{if $status.Duration}}
+                                                <span class="ml-2">Duration: {{$status.Duration}}</span>
+                                            {{end}}
+                                        </div>
+                                    </div>
+                                    {{/* Re-introduce separate details block for the error, if it exists */}}
+                                    {{if $status.Error}}
+                                    <details class="mt-1 pl-6 text-sm cursor-pointer">
+                                        <summary class="text-red-700 font-normal list-none">Show Error</summary>
+                                        <p class="mt-1 text-red-600 bg-red-50 p-2 rounded font-light">{{$status.Error}}</p>
+                                    </details>
+                                    {{end}}
+                                </li>
+                            {{end}}
+                        </ul>
+                    </div>
+                {{else if not .Error}}
+                    <div class="text-center text-gray-500 py-4">
+                        No specific service details available.
+                    </div>
+                {{end}}
+            {{else if not .Error}}
+                 <div class="text-center text-gray-500 py-4">
+                    Health report data is unavailable.
+                </div>
+            {{end}}
+        </div>
+        <div class="px-6 py-3 bg-gray-50 flex justify-between items-center border-t border-gray-200">
+             {{/* Refresh button can be kept for manual refresh action if desired, but status is now server-driven */}}
+             <form action="" method="get"> {{/* Point to the status endpoint */}}
+                 <button type="submit" class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors">
+                     Refresh Status
+                 </button>
+             </form>
+            <span class="text-sm text-gray-600">
+                {{if .Report}}
+                    {{/* ServiceReport struct has no overall CheckedAt; removed */}}
+                    Report Generated
+                {{else if .Error}}
+                     Check failed
+                {{else}}
+                     Status unavailable
+                {{end}}
+            </span>
+        </div>
+    </div>
+</body>
+</html>

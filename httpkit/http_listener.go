@@ -2,6 +2,7 @@ package httpkit
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 	"github.com/heartwilltell/hc"
 	"github.com/plainq/servekit"
 	"github.com/plainq/servekit/ctxkit"
+	"github.com/plainq/servekit/httpkit/statuspage"
 	"github.com/plainq/servekit/logkit"
 	"github.com/plainq/servekit/tern"
 	"golang.org/x/sync/errgroup"
@@ -164,6 +166,18 @@ func HealthCheckMetricsForEndpoint(enable bool) ListenerOption[HealthConfig] {
 	return func(c *HealthConfig) { c.metricsForEndpointEnabled = enable }
 }
 
+// HealthCheckReportJSON represents an optional function for WithHealthCheck function.
+// If passed to the WithHealthCheck, will set the ServerSettings.health.healthReport to healthReportJSON.
+func HealthCheckReportJSON() ListenerOption[HealthConfig] {
+	return func(c *HealthConfig) { c.healthReport = healthReportJSON }
+}
+
+// HealthCheckReportHTML represents an optional function for WithHealthCheck function.
+// If passed to the WithHealthCheck, will set the ServerSettings.health.healthReport to healthReportHTML.
+func HealthCheckReportHTML() ListenerOption[HealthConfig] {
+	return func(c *HealthConfig) { c.healthReport = healthReportHTML }
+}
+
 // WithMetrics turns on the metrics endpoint.
 // Receives the following option to configure the endpoint:
 // - MetricsRoute - to set the endpoint route.
@@ -286,7 +300,7 @@ func (l *ListenerHTTP) Serve(ctx context.Context) error {
 	g.Go(func() error { return l.handleShutdown(serveCtx) })
 
 	g.Go(func() error {
-		protocol := tern.OP[string](l.enableTLS, "HTTPS", "HTTP")
+		protocol := tern.OP(l.enableTLS, "HTTPS", "HTTP")
 
 		l.logger.Info(protocol+" listener started to listen",
 			slog.String("address", l.server.Addr),
@@ -336,6 +350,59 @@ func (l *ListenerHTTP) healthCheckHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+}
+
+func (l *ListenerHTTP) healthCheckHandlerJSON(w http.ResponseWriter, r *http.Request) {
+	if err := l.health.Health(r.Context()); err != nil {
+		if encodeErr := json.NewEncoder(w).Encode(map[string]string{
+			"status":  "503 Service Unavailable",
+			"message": "Service is temporarily unavailable. Please try again later.",
+		}); encodeErr != nil {
+			ctxkit.GetLogErrHook(r.Context())(errors.Join(err, encodeErr))
+
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		ctxkit.GetLogErrHook(r.Context())(err)
+
+		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	if err := json.NewEncoder(w).Encode(map[string]string{
+		"status":  "200 OK",
+		"message": "Service is healthy",
+	}); err != nil {
+		ctxkit.GetLogErrHook(r.Context())(err)
+
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (l *ListenerHTTP) healthCheckHandlerHTML(w http.ResponseWriter, r *http.Request) {
+	var (
+		healthErr = l.health.Health(r.Context())
+		report    = hc.NewServiceReport()
+	)
+
+	if shc, ok := l.health.(*hc.MultiServiceChecker); ok {
+		report = shc.Report()
+	}
+
+	if err := statuspage.RenderStatus(w, report); err != nil {
+		ctxkit.GetLogErrHook(r.Context())(errors.Join(healthErr, fmt.Errorf("render status page: %w", err)))
+
+		l.logger.Error("Failed to render status page", slog.String("error", err.Error()))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -483,8 +550,19 @@ func (l *ListenerHTTP) configureHealth(cfg ListenerConfig) error {
 				health.Use(MetricsMiddleware())
 			}
 
-			health.Get("/", l.healthCheckHandler)
-			health.Head("/", l.healthCheckHandler)
+			switch cfg.health.healthReport {
+			case healthReportJSON:
+				health.Get("/", l.healthCheckHandlerJSON)
+				health.Head("/", l.healthCheckHandler)
+
+			case healthReportHTML:
+				health.Get("/", l.healthCheckHandlerHTML)
+				health.Head("/", l.healthCheckHandler)
+
+			default:
+				health.Get("/", l.healthCheckHandler)
+				health.Head("/", l.healthCheckHandler)
+			}
 		})
 	}
 
@@ -566,7 +644,18 @@ type HealthConfig struct {
 	metricsForEndpointEnabled bool
 	route                     string
 	healthChecker             hc.HealthChecker
+	healthReport              healthReport
 }
+
+// healthReport represents a type for health report format.
+type healthReport int8
+
+// healthReport constants.
+const (
+	healthReportNone healthReport = iota
+	healthReportJSON
+	healthReportHTML
+)
 
 // MetricsConfig represents configuration for builtin metrics route.
 type MetricsConfig struct {
