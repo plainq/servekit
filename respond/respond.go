@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"html/template"
 	"net/http"
 	"sync"
@@ -228,6 +227,7 @@ func TemplateHTML(w http.ResponseWriter, r *http.Request, name string, v any, op
 		}
 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+
 		return
 	}
 
@@ -322,11 +322,12 @@ func (o *ResponseOptions) setHeadersToResponse(w http.ResponseWriter) {
 // zero returns default zeroed value for type T.
 func zero[T any]() T {
 	var v T
+
 	return v
 }
 
 type noopTemplater struct{}
 
 func (*noopTemplater) Template(_ context.Context, _ string) (*template.Template, error) {
-	return nil, fmt.Errorf("templater has not been initialized")
+	return nil, errors.New("templater has not been initialized")
 }

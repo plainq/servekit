@@ -42,7 +42,7 @@ func New(addr string, options ...Option) (*Conn, error) {
 }
 
 func (c *Conn) HealthCheck(ctx context.Context) error {
-	if s := c.Client.Ping(ctx); s.Err() != nil {
+	if s := c.Ping(ctx); s.Err() != nil {
 		return fmt.Errorf("redis: healthcheck failed: %w", s.Err())
 	}
 

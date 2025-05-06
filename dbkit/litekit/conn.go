@@ -434,7 +434,7 @@ func (c *Conn) restoreBackup(ctx context.Context, replica *litestream.Replica) e
 	// Determine the latest generation to restore from.
 	gen, updatedAt, restoreErr := replica.CalcRestoreTarget(ctx, opt)
 	if restoreErr != nil {
-		return fmt.Errorf("")
+		return fmt.Errorf("calculate restore target: %w", restoreErr)
 	}
 
 	opt.Generation = gen

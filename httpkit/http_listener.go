@@ -531,7 +531,7 @@ func (l *ListenerHTTP) configureHealth(cfg ListenerConfig) error {
 		}
 
 		if cfg.health.route == "" {
-			return fmt.Errorf("empty health route")
+			return errors.New("empty health route")
 		}
 
 		if !strings.HasPrefix(cfg.health.route, "/") {
@@ -572,7 +572,7 @@ func (l *ListenerHTTP) configureHealth(cfg ListenerConfig) error {
 func (l *ListenerHTTP) configureMetrics(cfg ListenerConfig) error {
 	if cfg.metrics.enable {
 		if cfg.metrics.route == "" {
-			return fmt.Errorf("empty metrics route")
+			return errors.New("empty metrics route")
 		}
 
 		if !strings.HasPrefix(cfg.metrics.route, "/") {
@@ -600,7 +600,7 @@ func (l *ListenerHTTP) configureMetrics(cfg ListenerConfig) error {
 func (l *ListenerHTTP) configureProfiler(cfg ListenerConfig) error {
 	if cfg.profiler.enable {
 		if cfg.profiler.route == "" {
-			return fmt.Errorf("empty profiler route")
+			return errors.New("empty profiler route")
 		}
 
 		if !strings.HasPrefix(cfg.profiler.route, "/") {

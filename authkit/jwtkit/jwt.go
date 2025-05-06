@@ -90,15 +90,15 @@ func (m *TokenManagerJWT) ParseVerify(token string) (*Token, error) {
 	}
 
 	if !t.IsValidExpiresAt(time.Now()) {
-		return nil, errors.Join(errkit.ErrTokenExpired, fmt.Errorf("token is expired"))
+		return nil, errors.Join(errkit.ErrTokenExpired, errors.New("token is expired"))
 	}
 
 	if !t.IsValidNotBefore(time.Now()) {
-		return nil, errors.Join(errkit.ErrTokenNotBefore, fmt.Errorf("token is not valid yet"))
+		return nil, errors.Join(errkit.ErrTokenNotBefore, errors.New("token is not valid yet"))
 	}
 
 	if !t.IsValidIssuedAt(time.Now()) {
-		return nil, errors.Join(errkit.ErrTokenIssuedAt, fmt.Errorf("token is not valid at the current time"))
+		return nil, errors.Join(errkit.ErrTokenIssuedAt, errors.New("token is not valid at the current time"))
 	}
 
 	return &t, nil

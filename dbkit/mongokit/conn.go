@@ -83,7 +83,7 @@ func (c *Conn) Close() error {
 
 // Health implements the health.Checker interface for MongoDB connection.
 func (c *Conn) Health(ctx context.Context) error {
-	if err := c.Client.Ping(ctx, readpref.Primary()); err != nil {
+	if err := c.Ping(ctx, readpref.Primary()); err != nil {
 		return fmt.Errorf("mongo: ping database: %w", err)
 	}
 

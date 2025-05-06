@@ -138,8 +138,8 @@ func (e *Evolver) MutateSchema() (eErr error) {
 	}
 
 	tx, txErr := e.db.BeginTx(ctx, &sql.TxOptions{
-		Isolation: sql.LevelSerializable},
-	)
+		Isolation: sql.LevelSerializable,
+	})
 	if txErr != nil {
 		return fmt.Errorf("begin transaction: %w", txErr)
 	}
