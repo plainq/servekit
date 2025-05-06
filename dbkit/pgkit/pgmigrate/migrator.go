@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/tern/v2/migrate"
+	"github.com/plainq/servekit/dbkit/pgkit"
 )
 
 // New returns a pointer to a new instance of Migrator.
-func New(conn *pgxpool.Pool, migrations fs.FS) (*Migrator, error) {
+func New(conn *pgkit.Conn, migrations fs.FS) (*Migrator, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
