@@ -696,7 +696,7 @@ formatters:
   enable:
     # - gci # Checks if code and import statements are formatted, with additional rules.
     - gofmt # Checks if the code is formatted according to 'gofmt' command.
-    - gofumpt # Checks if code and import statements are formatted, with additional rules.
+    # - gofumpt # Checks if code and import statements are formatted, with additional rules.
     - goimports # Checks if the code and import statements are formatted according to the 'goimports' command.
     - golines # Checks if code is formatted, and fixes long lines.
   settings:
