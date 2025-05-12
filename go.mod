@@ -5,7 +5,7 @@ go 1.24
 toolchain go1.24.2
 
 require (
-	github.com/VictoriaMetrics/metrics v1.35.4
+	github.com/VictoriaMetrics/metrics v1.37.0
 	github.com/benbjohnson/litestream v0.3.13
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/getsentry/sentry-go v0.32.0
