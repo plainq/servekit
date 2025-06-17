@@ -84,7 +84,7 @@ func (b *ExponentialBackoff) Next(retry uint) time.Duration {
 
 	mult := math.Pow(b.exponentialFactor, float64(retry))
 	backoff := math.Min(b.minBackoffInterval*mult, b.maxBackoffInterval)
-	jitter := float64(rand.Int64N(int64(b.maxJitterInterval)))
+	jitter := float64(rand.Int64N(int64(b.maxJitterInterval))) //nolint:gosec
 
 	return time.Duration(backoff+jitter) * time.Millisecond
 }
@@ -113,7 +113,7 @@ func (b *ConstantBackoff) Next(retry uint) time.Duration {
 		return 0 * time.Millisecond
 	}
 
-	jitter := float64(rand.Int64N(int64(b.maxJitterInterval)))
+	jitter := float64(rand.Int64N(int64(b.maxJitterInterval))) //nolint:gosec
 	backoff := math.Min(b.minBackoffInterval, b.maxBackoffInterval)
 
 	return time.Duration(backoff+jitter) * time.Millisecond
@@ -143,7 +143,7 @@ func (b *LinearBackoff) Next(retry uint) time.Duration {
 		return 0 * time.Millisecond
 	}
 
-	jitter := float64(rand.Int64N(int64(b.maxJitterInterval)))
+	jitter := float64(rand.Int64N(int64(b.maxJitterInterval))) //nolint:gosec
 	backoff := math.Min(b.minBackoffInterval*float64(retry), b.maxBackoffInterval)
 
 	return time.Duration(backoff+jitter) * time.Millisecond

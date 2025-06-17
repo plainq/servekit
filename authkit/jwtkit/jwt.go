@@ -39,6 +39,23 @@ func (t *Token) Raw() *jwt.Token { return t.raw }
 // Metadata returns the metadata of the token.
 func (t *Token) Metadata() map[string]any { return t.Meta }
 
+// Validate validates the token claims.
+func (t *Token) Validate(now time.Time) error {
+	if !t.IsValidExpiresAt(now) {
+		return errors.Join(errkit.ErrTokenExpired, errors.New("token is expired"))
+	}
+
+	if !t.IsValidNotBefore(now) {
+		return errors.Join(errkit.ErrTokenNotBefore, errors.New("token is not valid yet"))
+	}
+
+	if !t.IsValidIssuedAt(now) {
+		return errors.Join(errkit.ErrTokenIssuedAt, errors.New("token is not valid at the current time"))
+	}
+
+	return nil
+}
+
 // NewTokenManager creates a new implementation of TokenManager based on JWT.
 // It uses the given signer and verifier to sign and verify the token.
 func NewTokenManager(signer jwt.Signer, verifier jwt.Verifier) *TokenManagerJWT {
@@ -89,16 +106,8 @@ func (m *TokenManagerJWT) ParseVerify(token string) (*Token, error) {
 		return nil, errors.Join(errkit.ErrTokenInvalid, fmt.Errorf("decode claims: %w", err))
 	}
 
-	if !t.IsValidExpiresAt(time.Now()) {
-		return nil, errors.Join(errkit.ErrTokenExpired, errors.New("token is expired"))
-	}
-
-	if !t.IsValidNotBefore(time.Now()) {
-		return nil, errors.Join(errkit.ErrTokenNotBefore, errors.New("token is not valid yet"))
-	}
-
-	if !t.IsValidIssuedAt(time.Now()) {
-		return nil, errors.Join(errkit.ErrTokenIssuedAt, errors.New("token is not valid at the current time"))
+	if err := t.Validate(time.Now()); err != nil {
+		return nil, err
 	}
 
 	return &t, nil

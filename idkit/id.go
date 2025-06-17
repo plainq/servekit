@@ -3,7 +3,9 @@
 package idkit
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +15,6 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/plainq/servekit/errkit"
 	"github.com/rs/xid"
-	"github.com/valyala/fastrand"
 )
 
 const (
@@ -21,14 +22,25 @@ const (
 	digiCodeLen  = 6
 )
 
+// NewULID returns ULID identifier as string.
+func NewULID() (string, error) {
+	id, err := ulid.New(ulid.Timestamp(time.Now()), rand.Reader)
+	if err != nil {
+		return "", fmt.Errorf("failed to create ulid: %w", err)
+	}
+
+	return id.String(), nil
+}
+
 // ULID returns ULID identifier as string.
 // More about ULID: https://github.com/ulid/spec
+// Panics if it fails to generate an ID.
 func ULID() string {
-	t := time.Now().UTC()
-	e := ulid.Monotonic(rand.New(rand.NewSource(t.UnixNano())), 0)
-	id := ulid.MustNew(ulid.Timestamp(t), e)
-
-	return id.String()
+	id, err := NewULID()
+	if err != nil {
+		panic(fmt.Errorf("failed to generate ULID: %w", err))
+	}
+	return id
 }
 
 // ValidateULID validates string representation
@@ -65,15 +77,13 @@ func ParseXID(id string) (xid.ID, error) {
 
 // DigiCode returns 6-digit code as a string.
 func DigiCode() string {
-	var (
-		b   strings.Builder
-		rng fastrand.RNG
-	)
-
-	rng.Seed(uint32(time.Now().UnixNano())) //nolint:gosec // UnixNano will never be negative.
-
+	var b strings.Builder
 	for i := 0; i < digiCodeLen; i++ {
-		b.WriteString(strconv.Itoa(int(fastrand.Uint32n(digiCodeMaxN))))
+		n, err := rand.Int(rand.Reader, big.NewInt(digiCodeMaxN+1))
+		if err != nil {
+			panic(fmt.Errorf("failed to generate random digit: %w", err))
+		}
+		b.WriteString(strconv.FormatInt(n.Int64(), 10))
 	}
 
 	return b.String()
