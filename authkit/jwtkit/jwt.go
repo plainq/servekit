@@ -19,6 +19,10 @@ type TokenManager interface {
 
 	// ParseVerify takes a token string and parses and verifies it.
 	ParseVerify(token string) (*Token, error)
+
+	// ParseVerifyClaims takes a token string and parses and verifies it.
+	// It decodes the claims into the provided claims struct.
+	ParseVerifyClaims(token string, claims any) error
 }
 
 // Claims represents claims for JWT.
@@ -111,4 +115,26 @@ func (m *TokenManagerJWT) ParseVerify(token string) (*Token, error) {
 	}
 
 	return &t, nil
+}
+
+func (m *TokenManagerJWT) ParseVerifyClaims(token string, claims any) error {
+	raw, err := jwt.Parse([]byte(token), m.verifier)
+	if err != nil {
+		return errors.Join(errkit.ErrTokenInvalid, fmt.Errorf("parse token: %w", err))
+	}
+
+	if err := raw.DecodeClaims(claims); err != nil {
+		return errors.Join(errkit.ErrTokenInvalid, fmt.Errorf("decode custom claims: %w", err))
+	}
+
+	t := Token{}
+	if err := raw.DecodeClaims(&t); err != nil {
+		return errors.Join(errkit.ErrTokenInvalid, fmt.Errorf("decode standard claims: %w", err))
+	}
+
+	if err := t.Validate(time.Now()); err != nil {
+		return err
+	}
+
+	return nil
 }

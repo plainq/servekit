@@ -182,6 +182,44 @@ func (p *JWKSProvider) ParseVerify(token string) (*Token, error) {
 	return &t, nil
 }
 
+// ParseVerifyClaims parses and verifies a token using the key from the JWKS endpoint.
+func (p *JWKSProvider) ParseVerifyClaims(token string, claims any) error {
+	unverifiedToken, err := jwt.ParseNoVerify([]byte(token))
+	if err != nil {
+		return errors.Join(errkit.ErrTokenInvalid, fmt.Errorf("parse token header: %w", err))
+	}
+
+	kid := unverifiedToken.Header().KeyID
+	if kid == "" {
+		return errors.Join(errkit.ErrTokenInvalid, errors.New("missing kid in token header"))
+	}
+
+	verifier, err := p.getVerifier(kid)
+	if err != nil {
+		return errors.Join(errkit.ErrTokenInvalid, err)
+	}
+
+	raw, err := jwt.Parse([]byte(token), verifier)
+	if err != nil {
+		return errors.Join(errkit.ErrTokenInvalid, fmt.Errorf("parse token: %w", err))
+	}
+
+	if err := raw.DecodeClaims(claims); err != nil {
+		return errors.Join(errkit.ErrTokenInvalid, fmt.Errorf("decode custom claims: %w", err))
+	}
+
+	t := Token{}
+	if err := raw.DecodeClaims(&t); err != nil {
+		return errors.Join(errkit.ErrTokenInvalid, fmt.Errorf("decode standard claims: %w", err))
+	}
+
+	if err := t.Validate(time.Now()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Verify verifies a token.
 func (p *JWKSProvider) Verify(token string) error {
 	if _, err := p.ParseVerify(token); err != nil {

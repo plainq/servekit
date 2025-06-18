@@ -134,4 +134,28 @@ func TestTokenManagerJWT(t *testing.T) {
 		_, err := manager.ParseVerify("a.b.c")
 		td.Cmp(t, err, td.ErrorIs(errkit.ErrTokenInvalid))
 	})
+
+	t.Run("custom claims", func(t *testing.T) {
+		type CustomClaims struct {
+			jwt.RegisteredClaims
+			Foo string `json:"foo"`
+		}
+
+		claims := &CustomClaims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
+			},
+			Foo: "bar",
+		}
+
+		builder := jwt.NewBuilder(signer)
+		token, err := builder.Build(claims)
+		td.CmpNil(t, err)
+
+		parsedClaims := CustomClaims{}
+		err = manager.ParseVerifyClaims(token.String(), &parsedClaims)
+		td.CmpNil(t, err)
+		td.Cmp(t, parsedClaims.Foo, "bar")
+		td.Cmp(t, parsedClaims.ExpiresAt.Time.Unix(), claims.ExpiresAt.Time.Unix())
+	})
 }
