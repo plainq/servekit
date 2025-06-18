@@ -22,7 +22,6 @@ require (
 	github.com/redis/go-redis/v9 v9.9.0
 	github.com/resend/resend-go/v2 v2.20.0
 	github.com/rs/xid v1.6.0
-	github.com/valyala/fastrand v1.1.0
 	go.mongodb.org/mongo-driver v1.17.3
 	golang.org/x/crypto v0.38.0
 	golang.org/x/sync v0.14.0
@@ -62,6 +61,7 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/cast v1.9.2 // indirect
+	github.com/valyala/fastrand v1.1.0 // indirect
 	github.com/valyala/histogram v1.2.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
