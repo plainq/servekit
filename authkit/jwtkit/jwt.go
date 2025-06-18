@@ -132,9 +132,5 @@ func (m *TokenManagerJWT) ParseVerifyClaims(token string, claims any) error {
 		return errors.Join(errkit.ErrTokenInvalid, fmt.Errorf("decode standard claims: %w", err))
 	}
 
-	if err := t.Validate(time.Now()); err != nil {
-		return err
-	}
-
-	return nil
+	return t.Validate(time.Now())
 }
