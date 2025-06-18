@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -57,7 +60,11 @@ func (s *Server) RegisterListener(name string, listener Listener) {
 // If the retry limit is reached, it returns ErrRetryLimitReached.
 // Finally, it waits for all goroutines to complete and returns any error encountered during serving.
 func (s *Server) Serve(ctx context.Context) error {
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	g, listenerCtx := errgroup.WithContext(ctx)
+	
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
