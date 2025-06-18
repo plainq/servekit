@@ -314,12 +314,19 @@ func (l *ListenerHTTP) Serve(ctx context.Context) error {
 	})
 
 	if err := g.Wait(); err != nil {
-		l.logger.Error("Failed to shutdown the listener gracefully",
-			slog.String("address", l.server.Addr),
-			slog.String("error", err.Error()),
-		)
+		if errors.Is(err, servekit.ErrGracefullyShutdown) {
+			l.logger.Error("Failed to shutdown the listener gracefully",
+				slog.String("address", l.server.Addr),
+				slog.String("error", err.Error()),
+			)
+		} else {
+			l.logger.Error("Listener failed to serve",
+				slog.String("address", l.server.Addr),
+				slog.String("error", err.Error()),
+			)
+		}
 
-		return fmt.Errorf("%w: %s", servekit.ErrGracefullyShutdown, err.Error())
+		return err
 	}
 
 	return nil
@@ -420,23 +427,8 @@ func (l *ListenerHTTP) handleShutdown(ctx context.Context) error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
-	g, _ := errgroup.WithContext(shutdownCtx)
-
-	g.Go(func() error {
-		if err := l.server.Shutdown(shutdownCtx); err != nil {
-			return fmt.Errorf("shutdown HTTP server: %w", err)
-		}
-
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
-		l.logger.Error("Failed to shutdown the listener",
-			slog.String("address", l.server.Addr),
-			slog.String("error", err.Error()),
-		)
-
-		return fmt.Errorf("%w: %s", servekit.ErrGracefullyShutdown, err.Error())
+	if err := l.server.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("%w: %v", servekit.ErrGracefullyShutdown, err)
 	}
 
 	return nil
