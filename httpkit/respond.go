@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"html/template"
 	"net/http"
 	"sync"
-	"html/template"
 
 	"github.com/plainq/servekit/ctxkit"
 	"github.com/plainq/servekit/errkit"
@@ -45,7 +45,7 @@ var (
 
 		case errors.Is(err, errkit.ErrUnavailable):
 			statusCode = http.StatusServiceUnavailable
-			
+
 		default:
 			statusCode = http.StatusInternalServerError
 		}
@@ -68,6 +68,11 @@ var (
 // SetHTTPErrorResponder sets the given responder as errHTTPResponder.
 func SetHTTPErrorResponder(responder HTTPErrorResponder) {
 	errHTTPResponderInit.Do(func() { errHTTPResponder = responder })
+}
+
+// SetHTMLTemplater sets the given templater as htmlTemplater.
+func SetHTMLTemplater(templater HTMLTemplateProvider) {
+	htmlTemplaterInit.Do(func() { htmlTemplater = templater })
 }
 
 // HTMLTemplateProvider wraps a Template method to render requested HTML template.
