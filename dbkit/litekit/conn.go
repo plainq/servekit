@@ -319,7 +319,10 @@ func New(path string, options ...Option) (*Conn, error) {
 		return nil, fmt.Errorf("sqlite: open database: %w", openErr)
 	}
 
-	if err := db.Ping(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
 		return nil, fmt.Errorf("sqlite: connect to database: %w", err)
 	}
 
