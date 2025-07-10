@@ -415,6 +415,9 @@ func (l *ListenerHTTP) healthCheckHandlerHTML(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+
 	if _, err := buf.WriteTo(w); err != nil {
 		ctxkit.GetLogErrHook(r.Context())(errors.Join(
 			healthErr,
@@ -428,9 +431,6 @@ func (l *ListenerHTTP) healthCheckHandlerHTML(w http.ResponseWriter, r *http.Req
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
 }
 
 func (*ListenerHTTP) metricsHandler(w http.ResponseWriter, _ *http.Request) {
