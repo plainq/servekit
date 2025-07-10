@@ -1,10 +1,12 @@
 package httpkit
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -401,16 +403,34 @@ func (l *ListenerHTTP) healthCheckHandlerHTML(w http.ResponseWriter, r *http.Req
 		report = shc.Report()
 	}
 
-	if err := statuspage.RenderStatus(w, report); err != nil {
+	var buf bytes.Buffer
+
+	if err := statuspage.RenderStatus(&buf, report); err != nil {
 		ctxkit.GetLogErrHook(r.Context())(errors.Join(healthErr, fmt.Errorf("render status page: %w", err)))
 
-		l.logger.Error("Failed to render status page", slog.String("error", err.Error()))
+		l.logger.Error("Failed to render status page",
+			slog.String("error", err.Error()),
+		)
+
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
+
+	if _, err := io.Copy(w, &buf); err != nil {
+		ctxkit.GetLogErrHook(r.Context())(errors.Join(
+			healthErr,
+			fmt.Errorf("write status page buffer to response writer: %w", err),
+		))
+
+		l.logger.Error("Failed to write status page buffer to response writer",
+			slog.String("error", err.Error()),
+		)
+
+		return
+	}
 }
 
 func (*ListenerHTTP) metricsHandler(w http.ResponseWriter, _ *http.Request) {
