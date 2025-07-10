@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -418,7 +419,7 @@ func (l *ListenerHTTP) healthCheckHandlerHTML(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
-	if _, err := buf.WriteTo(w); err != nil {
+	if _, err := io.Copy(w, &buf); err != nil {
 		ctxkit.GetLogErrHook(r.Context())(errors.Join(
 			healthErr,
 			fmt.Errorf("write status page buffer to response writer: %w", err),
@@ -428,7 +429,6 @@ func (l *ListenerHTTP) healthCheckHandlerHTML(w http.ResponseWriter, r *http.Req
 			slog.String("error", err.Error()),
 		)
 
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 }
