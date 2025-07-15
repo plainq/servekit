@@ -23,7 +23,7 @@ require (
 	github.com/resend/resend-go/v2 v2.21.0
 	github.com/rs/xid v1.6.0
 	go.mongodb.org/mongo-driver v1.17.4
-	golang.org/x/crypto v0.39.0
+	golang.org/x/crypto v0.40.0
 	golang.org/x/sync v0.16.0
 	google.golang.org/grpc v1.73.0
 )
