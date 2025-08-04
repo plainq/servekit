@@ -317,10 +317,10 @@ func (l *ListenerHTTP) Serve(ctx context.Context) error {
 
 	if err := g.Wait(); err != nil {
 		if errors.Is(err, servekit.ErrGracefullyShutdown) {
-			l.logger.Error("Failed to shutdown the listener gracefully",
+			l.logger.Info("HTTP listener gracefully shut down",
 				slog.String("address", l.server.Addr),
-				slog.String("error", err.Error()),
 			)
+			return err
 		} else {
 			l.logger.Error("Listener failed to serve",
 				slog.String("address", l.server.Addr),
@@ -440,7 +440,7 @@ func (*ListenerHTTP) metricsHandler(w http.ResponseWriter, _ *http.Request) {
 func (l *ListenerHTTP) handleShutdown(ctx context.Context) error {
 	<-ctx.Done()
 
-	l.logger.Info("Shutting down the listener",
+	l.logger.Info("Shutting down the HTTP listener",
 		slog.String("address", l.server.Addr),
 	)
 
@@ -448,10 +448,19 @@ func (l *ListenerHTTP) handleShutdown(ctx context.Context) error {
 	defer cancel()
 
 	if err := l.server.Shutdown(shutdownCtx); err != nil {
+		l.logger.Error("Failed to shutdown HTTP listener gracefully",
+			slog.String("address", l.server.Addr),
+			slog.String("error", err.Error()),
+			slog.Duration("timeout", shutdownTimeout),
+		)
 		return fmt.Errorf("%w: %v", servekit.ErrGracefullyShutdown, err)
 	}
 
-	return nil
+	l.logger.Info("HTTP server gracefully stopped",
+		slog.String("address", l.server.Addr),
+	)
+
+	return servekit.ErrGracefullyShutdown
 }
 
 // ListenerConfig holds ListenerHTTP configuration.

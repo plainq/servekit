@@ -101,10 +101,10 @@ func (l *ListenerGRPC) Mount(handlers ...GRPCEndpointRegistrator) {
 }
 
 func (l *ListenerGRPC) Serve(ctx context.Context) error {
-	g, _ := errgroup.WithContext(ctx)
+	g, serveCtx := errgroup.WithContext(ctx)
 
 	// Handle graceful shutdown.
-	g.Go(func() error { return l.handleShutdown(ctx) })
+	g.Go(func() error { return l.handleShutdown(serveCtx) })
 
 	g.Go(func() error {
 		l.logger.Info("gRPC listener started to listen",
@@ -120,7 +120,10 @@ func (l *ListenerGRPC) Serve(ctx context.Context) error {
 
 	if err := g.Wait(); err != nil {
 		if errors.Is(err, servekit.ErrGracefullyShutdown) {
-			panic(err)
+			l.logger.Info("gRPC listener gracefully shut down",
+				slog.String("address", l.listener.Addr().String()),
+			)
+			return err
 		}
 
 		return fmt.Errorf("serve: %w", err)
@@ -131,13 +134,15 @@ func (l *ListenerGRPC) Serve(ctx context.Context) error {
 
 // handleShutdown blocks until select statement receives a signal from
 // ctx.Done, after that new context.WithTimeout will be created and passed to
-// http.Server Shutdown method.
+// the gRPC server graceful stop method.
 //
-// If Shutdown method returns non nil error, program will panic immediately.
+// If the graceful stop exceeds the timeout, the server will be forcefully stopped.
 func (l *ListenerGRPC) handleShutdown(ctx context.Context) error {
 	<-ctx.Done()
 
-	l.logger.Info("Shutting down the server!")
+	l.logger.Info("Shutting down the gRPC server!",
+		slog.String("address", l.listener.Addr().String()),
+	)
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
@@ -154,23 +159,31 @@ func (l *ListenerGRPC) handleShutdown(ctx context.Context) error {
 
 		select {
 		case <-done:
+			l.logger.Info("gRPC server gracefully stopped",
+				slog.String("address", l.listener.Addr().String()),
+			)
 			return nil
 
 		case <-shutdownCtx.Done():
+			l.logger.Warn("Graceful shutdown timeout exceeded, forcing stop",
+				slog.String("address", l.listener.Addr().String()),
+				slog.Duration("timeout", shutdownTimeout),
+			)
 			go l.server.Stop()
 			return fmt.Errorf("shutdown gRPC listener: %w", shutdownCtx.Err())
 		}
 	})
 
 	if err := g.Wait(); err != nil {
-		l.logger.Error("Failed to shutdown the listener gracefully",
+		l.logger.Error("Failed to shutdown the gRPC listener gracefully",
+			slog.String("address", l.listener.Addr().String()),
 			slog.String("error", err.Error()),
 		)
 
 		return fmt.Errorf("%w: %s", servekit.ErrGracefullyShutdown, err.Error())
 	}
 
-	return nil
+	return servekit.ErrGracefullyShutdown
 }
 
 func applyOptionsGRPC(options ...Option[ListenerConfig]) ListenerConfig {
