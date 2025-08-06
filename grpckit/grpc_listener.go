@@ -119,14 +119,7 @@ func (l *ListenerGRPC) Serve(ctx context.Context) error {
 	})
 
 	if err := g.Wait(); err != nil {
-		if errors.Is(err, servekit.ErrGracefullyShutdown) {
-			l.logger.Info("gRPC listener gracefully shut down",
-				slog.String("address", l.listener.Addr().String()),
-			)
-			return err
-		}
-
-		return fmt.Errorf("serve: %w", err)
+		return fmt.Errorf("gRPC listener: %w", err)
 	}
 
 	return nil
@@ -162,14 +155,16 @@ func (l *ListenerGRPC) handleShutdown(ctx context.Context) error {
 			l.logger.Info("gRPC server gracefully stopped",
 				slog.String("address", l.listener.Addr().String()),
 			)
+
 			return nil
 
 		case <-shutdownCtx.Done():
-			l.logger.Warn("Graceful shutdown timeout exceeded, forcing stop",
+			l.logger.Warn("gRPC server graceful shutdown timeout exceeded, forcing stop",
 				slog.String("address", l.listener.Addr().String()),
 				slog.Duration("timeout", shutdownTimeout),
 			)
-			go l.server.Stop()
+
+			l.server.Stop()
 			return fmt.Errorf("shutdown gRPC listener: %w", shutdownCtx.Err())
 		}
 	})
@@ -183,7 +178,7 @@ func (l *ListenerGRPC) handleShutdown(ctx context.Context) error {
 		return fmt.Errorf("%w: %s", servekit.ErrGracefullyShutdown, err.Error())
 	}
 
-	return servekit.ErrGracefullyShutdown
+	return nil
 }
 
 func applyOptionsGRPC(options ...Option[ListenerConfig]) ListenerConfig {
