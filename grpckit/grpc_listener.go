@@ -71,8 +71,7 @@ type ListenerGRPC struct {
 // It applies all the options to a default `applyOptionsGRPC` instance and sets the server options with
 // the provided unary and stream interceptors. Finally, it returns the ListenerGRPC instance and potential error.
 func NewListenerGRPC(addr string, options ...Option[ListenerConfig]) (*ListenerGRPC, error) {
-	var lc net.ListenConfig
-	listener, grpcListenerErr := lc.Listen(context.Background(), "tcp", addr)
+	listener, grpcListenerErr := (net.ListenConfig{}).Listen(context.Background(), "tcp", addr)
 	if grpcListenerErr != nil {
 		return nil, fmt.Errorf("create gRPC listener: %w", grpcListenerErr)
 	}
