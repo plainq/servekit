@@ -65,8 +65,6 @@ func (s *Server) Serve(ctx context.Context) error {
 	defer s.mu.RUnlock()
 
 	for name, listener := range s.listeners {
-		name := name         // Capture loop variable.
-		listener := listener // Capture loop variable.
 		g.Go(func() error {
 			if err := listener.Serve(listenerCtx); err != nil {
 				// Handle graceful shutdown differently from actual errors.
