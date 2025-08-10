@@ -2,6 +2,7 @@ package servekit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -64,12 +65,12 @@ func (s *Server) Serve(ctx context.Context) error {
 	defer s.mu.RUnlock()
 
 	for name, listener := range s.listeners {
-		name := name // Capture loop variable
-		listener := listener // Capture loop variable
+		name := name         // Capture loop variable.
+		listener := listener // Capture loop variable.
 		g.Go(func() error {
 			if err := listener.Serve(listenerCtx); err != nil {
-				// Handle graceful shutdown differently from actual errors
-				if err == ErrGracefullyShutdown {
+				// Handle graceful shutdown differently from actual errors.
+				if errors.Is(err, ErrGracefullyShutdown) {
 					s.logger.Info("Listener gracefully shut down",
 						slog.String("name", name),
 					)
@@ -96,9 +97,9 @@ func (s *Server) Serve(ctx context.Context) error {
 // Shutdown gracefully shuts down all registered listeners within the given timeout.
 func (s *Server) Shutdown(timeout time.Duration) error {
 	s.logger.Info("Initiating graceful shutdown of all listeners")
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	
+
 	return s.Serve(ctx)
 }
