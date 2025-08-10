@@ -74,7 +74,7 @@ func (s *Server) Serve(ctx context.Context) error {
 					s.logger.Info("Listener gracefully shut down",
 						slog.String("name", name),
 					)
-					return nil // Don't treat graceful shutdown as an error
+					return nil // Don't treat graceful shutdown as an error.
 				}
 				return fmt.Errorf("listener %s failed: %w", name, err)
 			}
