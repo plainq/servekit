@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -63,8 +64,17 @@ func (s *Server) Serve(ctx context.Context) error {
 	defer s.mu.RUnlock()
 
 	for name, listener := range s.listeners {
+		name := name // Capture loop variable
+		listener := listener // Capture loop variable
 		g.Go(func() error {
 			if err := listener.Serve(listenerCtx); err != nil {
+				// Handle graceful shutdown differently from actual errors
+				if err == ErrGracefullyShutdown {
+					s.logger.Info("Listener gracefully shut down",
+						slog.String("name", name),
+					)
+					return nil // Don't treat graceful shutdown as an error
+				}
 				return fmt.Errorf("listener %s failed: %w", name, err)
 			}
 
@@ -76,7 +86,19 @@ func (s *Server) Serve(ctx context.Context) error {
 		s.logger.Error("Server failed",
 			slog.String("error", err.Error()),
 		)
+		return err
 	}
 
+	s.logger.Info("All listeners shut down successfully")
 	return nil
+}
+
+// Shutdown gracefully shuts down all registered listeners within the given timeout.
+func (s *Server) Shutdown(timeout time.Duration) error {
+	s.logger.Info("Initiating graceful shutdown of all listeners")
+	
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	
+	return s.Serve(ctx)
 }

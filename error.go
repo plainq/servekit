@@ -17,4 +17,6 @@ const (
 // Error represents a package level error. Implements builtin error interface.
 type Error string
 
+// Error returns the error message as a string.
+// Implements the error interface.
 func (e Error) Error() string { return string(e) }
