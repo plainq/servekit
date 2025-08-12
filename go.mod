@@ -8,7 +8,7 @@ require (
 	github.com/VictoriaMetrics/metrics v1.38.0
 	github.com/benbjohnson/litestream v0.3.13
 	github.com/cristalhq/jwt/v5 v5.4.0
-	github.com/getsentry/sentry-go v0.34.1
+	github.com/getsentry/sentry-go v0.35.0
 	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-chi/cors v1.2.2
 	github.com/heartwilltell/hc v0.2.2
