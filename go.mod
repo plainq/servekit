@@ -20,7 +20,7 @@ require (
 	github.com/maxatome/go-testdeep v1.14.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/redis/go-redis/v9 v9.11.0
-	github.com/resend/resend-go/v2 v2.22.0
+	github.com/resend/resend-go/v2 v2.23.0
 	github.com/rs/xid v1.6.0
 	go.mongodb.org/mongo-driver v1.17.4
 	golang.org/x/crypto v0.40.0
